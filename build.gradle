@@ -49,7 +49,7 @@ dependencies {
 	def testcontainersVersion = '1.19.3'
 	testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
 	testImplementation "org.testcontainers:postgresql:${testcontainersVersion}"
-	testImplementation 'com.h2database:h2'
+	
 }
 
 tasks.named('test') {

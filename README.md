@@ -26,7 +26,8 @@ This project implements a robust and scalable e-commerce order processing system
     *   Remove items from the cart.
     *   Clear the entire shopping cart.
 *   **User Authentication:**
-    *   Basic user authentication (though the focus is on order processing, not full user management).
+    *   Customer registration with email and password.
+    *   JWT-based authentication for securing endpoints.
 *   **High Concurrency:**
     *   Utilizes Java Virtual Threads for efficient handling of I/O-bound operations, minimizing thread blocking and maximizing throughput.
     *   Asynchronous programming with `CompletableFuture` for non-blocking execution flows.
@@ -41,6 +42,15 @@ The system is designed with a layered architecture, emphasizing separation of co
 *   **Service Layer:** Contains the core business logic. This layer is designed to be highly concurrent, utilizing `CompletableFuture` and Virtual Threads for I/O-bound operations.
 *   **Repository Layer:** Abstracts data access operations, interacting with the PostgreSQL database using Spring Data JPA.
 *   **Domain Layer:** Defines the core business entities and their relationships.
+
+### Service Boundaries and API Design
+
+A key architectural principle is the clear separation of services, even within the current monolithic structure. Services like `InventoryService` and `PaymentService` have their own REST controllers (`InventoryController`, `PaymentController`) for two main reasons:
+
+1.  **Microservice-Ready:** This design defines the public API for each service, making it straightforward to decompose the application into independent microservices in the future. Each controller represents the boundary of a future service.
+2.  **Independent Functionality:** It allows other systems (e.g., an admin UI, a warehouse management system) to interact with services directly without going through the `OrderService`. For example, an admin might need to check stock levels or issue a refund independently of an order.
+
+This approach makes the system more flexible, scalable, and easier to test and maintain.
 
 ### Microservices Boundaries (Proposed)
 
@@ -107,7 +117,7 @@ Before you begin, ensure you have the following installed:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/high-concurrency-order-processing.git
+    git clone https://github.com/TheAlchemistNerd/high-concurrency-order-processing.git
     cd high-concurrency-order-processing
     ```
 
@@ -174,6 +184,7 @@ Once the application is running, you can access the API documentation via Swagge
 Here's a summary of the main API endpoints:
 
 *   **Authentication:**
+    *   `POST /api/auth/register`: Customer registration.
     *   `POST /api/auth/login`: User login.
 *   **Orders:**
     *   `POST /api/orders`: Create a new order.
@@ -203,7 +214,8 @@ Here's a summary of the main API endpoints:
 *   **Circuit Breakers & Retries**: Implement resilience patterns for external service calls.
 *   **Distributed Tracing**: Integrate with tools like Zipkin or Jaeger for better observability.
 *   **Comprehensive Testing**: Expand unit, integration, and end-to-end tests.
-*   **User Management**: Implement full user registration, profile management, and role-based access control.
+*   **User Profile Management**: Allow users to view and update their profile information.
+*   **Role-Based Access Control (RBAC)**: Enhance the authorization logic with more granular roles and permissions.
 *   **Product Catalog Management**: Dedicated service for managing product data.
 *   **Real Payment Gateway Integration**: Replace the simulated payment gateway with a real one (e.g., Stripe, PayPal).
 
