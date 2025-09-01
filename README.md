@@ -34,6 +34,8 @@ This project implements a robust and scalable e-commerce order processing system
 
 ## Architecture
 
+For a detailed discussion on evolving our architecture with a Product Catalog Service, see the [Architectural Vision: Decoupling with a Product Catalog Service](./PRODUCT_CATALOG_SERVICE_ARCHITECTURE.md) document.
+
 The system is designed with a layered architecture, emphasizing separation of concerns and preparing for a transition to a microservices-based deployment.
 
 ### Core Components
