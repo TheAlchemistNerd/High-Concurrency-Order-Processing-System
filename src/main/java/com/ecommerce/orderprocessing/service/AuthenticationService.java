@@ -1,10 +1,12 @@
 package com.ecommerce.orderprocessing.service;
 
 import com.ecommerce.orderprocessing.domain.entity.Customer;
+import com.ecommerce.orderprocessing.domain.enumeration.UserRole;
 import com.ecommerce.orderprocessing.dto.request.CustomerRegistrationRequest;
 import com.ecommerce.orderprocessing.dto.response.CustomerResponse;
 import com.ecommerce.orderprocessing.dto.request.LoginRequest;
 import com.ecommerce.orderprocessing.dto.response.LoginResponse;
+import com.ecommerce.orderprocessing.exception.BadRequestException;
 import com.ecommerce.orderprocessing.repository.CustomerRepository;
 import com.ecommerce.orderprocessing.security.JwtTokenProvider;
 import jakarta.validation.Valid;

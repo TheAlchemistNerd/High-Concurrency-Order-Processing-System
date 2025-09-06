@@ -8,7 +8,7 @@ GRANT ALL PRIVILEGES ON DATABASE ecommerce_db TO ${DB_USERNAME};
 -- Commented out table creation statements as Hibernate will handle this.
 
 -- Create Customer table
--- CREATE TABLE Customer (
+-- CREATE TABLE customer (
 --     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 --     username VARCHAR(255) NOT NULL UNIQUE,
 --     password VARCHAR(255) NOT NULL,
@@ -20,7 +20,7 @@ GRANT ALL PRIVILEGES ON DATABASE ecommerce_db TO ${DB_USERNAME};
 -- );
 
 -- Create Product table
--- CREATE TABLE Product (
+-- CREATE TABLE product (
 --     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 --     name VARCHAR(255) NOT NULL,
 --     description TEXT,

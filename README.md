@@ -216,8 +216,8 @@ Here's a summary of the main API endpoints:
 *   **Circuit Breakers & Retries**: Implement resilience patterns for external service calls.
 *   **Distributed Tracing**: Integrate with tools like Zipkin or Jaeger for better observability.
 *   **Comprehensive Testing**: Expand unit, integration, and end-to-end tests.
-*   **User Profile Management**: Allow users to view and update their profile information.
-*   **Role-Based Access Control (RBAC)**: Enhance the authorization logic with more granular roles and permissions.
+*   **User Profile Management**: Allow users to view and update their profile information. See [User Profile Management Architecture](./USER_PROFILE_MANAGEMENT_ARCHITECTURE.md) for more details.
+*   **Role-Based Access Control (RBAC)**: Enhance the authorization logic with more granular roles and permissions. See [RBAC Architecture](./RBAC_ARCHITECTURE.md) for more details.
 *   **Product Catalog Management**: Dedicated service for managing product data.
 *   **Real Payment Gateway Integration**: Replace the simulated payment gateway with a real one (e.g., Stripe, PayPal).
 
