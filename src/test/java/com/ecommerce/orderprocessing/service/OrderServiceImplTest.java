@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -64,9 +65,9 @@ class OrderServiceImplTest {
 
     private ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
-    
+
     private OrderServiceImpl orderServiceImpl;
-    
+
     @BeforeEach
     void setUp() {
         orderServiceImpl = new OrderServiceImpl(orderRepository, orderItemRepository, customerRepository, productRepository, inventoryService, paymentService, virtualThreadExecutor);
@@ -75,16 +76,16 @@ class OrderServiceImplTest {
     @Test
     void createOrder_shouldCreateOrderSuccessfully() throws Exception {
         // Given
-        CreateOrderItemRequest itemRequest = new CreateOrderItemRequest("prod-1", 2);
-        CreateOrderRequest orderRequest = new CreateOrderRequest("cust-1", Collections.singletonList(itemRequest), "123 Main St");
+        CreateOrderItemRequest itemRequest = new CreateOrderItemRequest(1L, 2);
+        CreateOrderRequest orderRequest = new CreateOrderRequest(1L, "123 Main St", Collections.singletonList(itemRequest), "notes");
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
         customer.setName("Test Customer");
         customer.setEmail("test@test.com");
 
         Product product = new Product();
-        product.setId("prod-1");
+        product.setId(1L);
         product.setName("Test Product");
         product.setPrice(BigDecimal.TEN);
 
@@ -99,14 +100,28 @@ class OrderServiceImplTest {
         orderItem.setProduct(product);
         orderItem.setQuantity(2);
         orderItem.setUnitPrice(BigDecimal.TEN);
-        
+        orderItem.calculateSubtotal();
+
         order.setOrderItems(Collections.singletonList(orderItem));
 
-        when(customerRepository.findById("cust-1")).thenReturn(Optional.of(customer));
-        when(orderRepository.save(any(Order.class))).thenReturn(order);
-        when(productRepository.findById("prod-1")).thenReturn(Optional.of(product));
-        when(inventoryService.reserveInventory("prod-1", 2)).thenReturn(CompletableFuture.completedFuture(null));
-        when(orderItemRepository.save(any(OrderItem.class))).thenReturn(orderItem);
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order savedOrder = invocation.getArgument(0);
+            if (savedOrder.getId() == null) {
+                savedOrder.setId(1L);
+            }
+            return savedOrder;
+        });
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(inventoryService.reserveInventory(1L, 2)).thenReturn(CompletableFuture.completedFuture(null));
+        when(orderItemRepository.save(any(OrderItem.class))).thenAnswer(invocation -> {
+            OrderItem savedOrderItem = invocation.getArgument(0);
+            if (savedOrderItem.getId() == null) {
+                savedOrderItem.setId(1L);
+            }
+            savedOrderItem.calculateSubtotal();
+            return savedOrderItem;
+        });
 
         // When
         CompletableFuture<OrderResponse> future = orderServiceImpl.createOrder(orderRequest);
@@ -115,11 +130,12 @@ class OrderServiceImplTest {
         // Then
         assertNotNull(orderResponse);
         assertEquals(1L, orderResponse.id());
-        assertEquals("cust-1", orderResponse.customerId());
+        assertEquals(1L, orderResponse.customerId());
         assertEquals(OrderStatus.PENDING.toString(), orderResponse.status());
         assertNotNull(orderResponse.orderItems());
         assertEquals(1, orderResponse.orderItems().size());
-        assertEquals("prod-1", orderResponse.orderItems().get(0).productId());
+        assertEquals(1L, orderResponse.orderItems().get(0).productId());
+        assertEquals(BigDecimal.valueOf(20), orderResponse.totalAmount());
     }
 
     @Test
@@ -127,7 +143,7 @@ class OrderServiceImplTest {
         // Given
         Long orderId = 1L;
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
         customer.setName("Test Customer");
         customer.setEmail("test@test.com");
 
@@ -145,8 +161,8 @@ class OrderServiceImplTest {
 
         // Then
         assertNotNull(orderResponse);
-        assertEquals(orderId, orderResponse.orderId());
-        assertEquals("cust-1", orderResponse.customerId());
+        assertEquals(orderId, orderResponse.id());
+        assertEquals(1L, orderResponse.customerId());
     }
 
     @Test
@@ -175,7 +191,7 @@ class OrderServiceImplTest {
         Long customerId = 1L;
         Pageable pageable = Pageable.ofSize(10);
         Customer customer = new Customer();
-        customer.setId(customerId.toString());
+        customer.setId(customerId);
 
         Order order = new Order();
         order.setId(1L);
@@ -185,7 +201,7 @@ class OrderServiceImplTest {
 
         Page<Order> orderPage = new PageImpl<>(Collections.singletonList(order), pageable, 1);
 
-        when(customerRepository.findById(customerId.toString())).thenReturn(Optional.of(customer));
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(orderRepository.findByCustomer(customer, pageable)).thenReturn(orderPage);
 
         // When
@@ -203,7 +219,7 @@ class OrderServiceImplTest {
         // Given
         Long customerId = 1L;
         Pageable pageable = Pageable.ofSize(10);
-        when(customerRepository.findById(customerId.toString())).thenReturn(Optional.empty());
+        when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
 
         // When
         CompletableFuture<PagedResponse<OrderResponse>> future = orderServiceImpl.getCustomerOrders(customerId, pageable);
@@ -226,7 +242,7 @@ class OrderServiceImplTest {
         UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.PAID.toString(), "Payment received");
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(orderId);
@@ -275,7 +291,7 @@ class OrderServiceImplTest {
         UpdateOrderStatusRequest request = new UpdateOrderStatusRequest(OrderStatus.SHIPPED.toString(), null);
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(orderId);
@@ -301,11 +317,11 @@ class OrderServiceImplTest {
     @Test
     void processOrderPayment_shouldProcessPaymentSuccessfully() throws Exception {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest(1L, BigDecimal.TEN, "card-token");
-        PaymentResponse paymentResponse = new PaymentResponse("payment-1", "SUCCESS", "Payment successful");
+        PaymentRequest paymentRequest = new PaymentRequest(1L, "card", BigDecimal.TEN, "123", "name", "12", "2025", "123");
+        PaymentResponse paymentResponse = new PaymentResponse("payment-1", "SUCCESS", BigDecimal.TEN, "USD", "card", LocalDateTime.now(), "trx-1", "Payment successful");
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(1L);
@@ -330,7 +346,7 @@ class OrderServiceImplTest {
     @Test
     void processOrderPayment_whenOrderNotFound_shouldThrowException() {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest(1L, BigDecimal.TEN, "card-token");
+        PaymentRequest paymentRequest = new PaymentRequest(1L, "card", BigDecimal.TEN, "123", "name", "12", "2025", "123");
         when(orderRepository.findById(1L)).thenReturn(Optional.empty());
 
         // When
@@ -350,10 +366,10 @@ class OrderServiceImplTest {
     @Test
     void processOrderPayment_whenInvalidOrderStatus_shouldThrowException() {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest(1L, BigDecimal.TEN, "card-token");
-        
+        PaymentRequest paymentRequest = new PaymentRequest(1L, "card", BigDecimal.TEN, "123", "name", "12", "2025", "123");
+
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(1L);
@@ -379,11 +395,11 @@ class OrderServiceImplTest {
     @Test
     void processOrderPayment_whenPaymentFails_shouldThrowException() {
         // Given
-        PaymentRequest paymentRequest = new PaymentRequest(1L, BigDecimal.TEN, "card-token");
-        PaymentResponse paymentResponse = new PaymentResponse("payment-1", "FAILED", "Payment failed");
+        PaymentRequest paymentRequest = new PaymentRequest(1L, "card", BigDecimal.TEN, "123", "name", "12", "2025", "123");
+        PaymentResponse paymentResponse = new PaymentResponse("payment-1", "FAILED", BigDecimal.TEN, "USD", "card", LocalDateTime.now(), "trx-1", "Payment failed");
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(1L);
@@ -414,10 +430,10 @@ class OrderServiceImplTest {
         String reason = "No longer needed";
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Product product = new Product();
-        product.setId("prod-1");
+        product.setId(1L);
 
         OrderItem orderItem = new OrderItem();
         orderItem.setProduct(product);
@@ -470,7 +486,7 @@ class OrderServiceImplTest {
         String reason = "No longer needed";
 
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(orderId);
@@ -498,7 +514,7 @@ class OrderServiceImplTest {
         // Given
         Pageable pageable = Pageable.ofSize(10);
         Customer customer = new Customer();
-        customer.setId("cust-1");
+        customer.setId(1L);
 
         Order order = new Order();
         order.setId(1L);
