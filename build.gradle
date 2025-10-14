@@ -1,75 +1,148 @@
+
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.5'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'jacoco' // for Jacoco plugin
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5' apply false
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
-group = 'com.ecommerce'
-version = '1.0.0'
-description = 'Backend service for handling massive concurrent order processing'
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(22)
-	}
+    group = 'com.ecommerce'
+    version = '1.0.0'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(22)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.2.5"
+        }
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }
 
-repositories {
-	mavenCentral()
+project(':user-service') {
+    dependencies {
+        implementation project(':common')
+        testImplementation project(':common')
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.slf4j:slf4j-api'
+        implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+        testImplementation 'org.springframework.security:spring-security-test'
+    }
 }
 
-dependencies {
-	// Spring Boot Starters
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	// Database
-	runtimeOnly 'org.postgresql:postgresql'
-	// JWT
-	def jwtVersion = '0.12.3'
-	implementation "io.jsonwebtoken:jjwt-api:${jwtVersion}"
-	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jwtVersion}"
-	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jwtVersion}"
-	// Monitoring
-	implementation 'io.micrometer:micrometer-registry-prometheus'
-	// HTTP Client for Payment Gateway
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	// OpenAPI Documentation
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
-
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-
-	// Testing
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	def testcontainersVersion = '1.19.3'
-	testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
-	testImplementation "org.testcontainers:postgresql:${testcontainersVersion}"
-	
+project(':product-service') {
+    apply plugin: 'java-library'
+    dependencies {
+        implementation project(':common')
+        testImplementation project(':common')
+        api 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+    }
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+project(':inventory-service') {
+    dependencies {
+        implementation project(':common')
+        testImplementation project(':common')
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.data:spring-data-commons'
+        implementation 'org.slf4j:slf4j-api'
+        implementation 'org.springframework:spring-tx'
+    }
 }
 
-jacoco {
-	toolVersion = '0.8.8'
+project(':order-service') {
+    dependencies {
+        implementation project(':common')
+        testImplementation project(':common')
+        implementation project(':user-service')
+        implementation project(':product-service')
+        implementation project(':inventory-service')
+        implementation project(':payment-service')
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+    }
 }
 
-jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required = true
-		csv.required = false
-		html.required = true
-	}
+project(':payment-service') {
+    dependencies {
+        implementation project(':common')
+        implementation 'org.springframework.boot:spring-boot-starter-webflux'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+    }
 }
 
-bootJar {
-	// Exclude the lombok dependency if it exists
-	exclude 'org.projectlombok:lombok'
+project(':shopping-cart-service') {
+    dependencies {
+        implementation project(':common')
+        testImplementation project(':common')
+        implementation project(':user-service')
+        implementation project(':product-service')
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+    }
+}
+
+project(':common') {
+    apply plugin: 'java-test-fixtures'
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        testImplementation 'org.testcontainers:postgresql'
+        testImplementation 'org.testcontainers:junit-jupiter'
+    }
+}
+
+project(':app') {
+    apply plugin: 'org.springframework.boot'
+
+    dependencies {
+        implementation project(':common')
+        implementation project(':user-service')
+        implementation project(':product-service')
+        implementation project(':inventory-service')
+        implementation project(':order-service')
+        implementation project(':payment-service')
+        implementation project(':shopping-cart-service')
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'io.micrometer:micrometer-registry-prometheus'
+        implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+        runtimeOnly 'org.postgresql:postgresql'
+
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.springframework.security:spring-security-test'
+    }
+
+    bootJar {
+        enabled = true
+        mainClass = 'com.ecommerce.orderprocessing.EcommerceOrderProcessingApplication'
+    }
 }
