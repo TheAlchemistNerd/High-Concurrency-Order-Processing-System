@@ -2,6 +2,7 @@ package com.ecommerce.orderprocessing.product.service;
 
 import com.ecommerce.orderprocessing.common.exception.ResourceNotFoundException;
 import com.ecommerce.orderprocessing.product.Product;
+import com.ecommerce.orderprocessing.product.dto.ProductRequest;
 import com.ecommerce.orderprocessing.product.repository.ProductRepository;
 import com.ecommerce.orderprocessing.product.ProductResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,44 @@ public class ProductCatalogServiceImpl implements ProductCatalogService {
             return products.stream()
                     .map(this::toProductResponse)
                     .collect(Collectors.toList());
+        }, virtualThreadExecutor);
+    }
+
+    @Override
+    @Transactional
+    public CompletableFuture<ProductResponse> createProduct(ProductRequest productRequest) {
+        return CompletableFuture.supplyAsync(() -> {
+            Product product = new Product();
+            product.setName(productRequest.name());
+            product.setDescription(productRequest.description());
+            product.setPrice(productRequest.price());
+            product.setIsActive(true);
+            Product savedProduct = productRepository.save(product);
+            return toProductResponse(savedProduct);
+        }, virtualThreadExecutor);
+    }
+
+    @Override
+    @Transactional
+    public CompletableFuture<ProductResponse> updateProduct(Long productId, ProductRequest productRequest) {
+        return CompletableFuture.supplyAsync(() -> {
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+            product.setName(productRequest.name());
+            product.setDescription(productRequest.description());
+            product.setPrice(productRequest.price());
+            Product updatedProduct = productRepository.save(product);
+            return toProductResponse(updatedProduct);
+        }, virtualThreadExecutor);
+    }
+
+    @Override
+    @Transactional
+    public CompletableFuture<Void> deleteProduct(Long productId) {
+        return CompletableFuture.runAsync(() -> {
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+            productRepository.delete(product);
         }, virtualThreadExecutor);
     }
 

@@ -83,8 +83,10 @@ The following is a detailed breakdown of how RBAC would be applied across all ex
 
 ### Inventory Service (`/api/inventory`)
 *   `GET /products/{productId}`: `Anonymous` (Permit All)
+*   `GET /products/{productId}/check`: `Anonymous` (Permit All)
 *   `POST /products/{productId}/reserve`: `@PreAuthorize("hasRole('ORDER_MANAGER')")` - This is an internal, service-to-service call initiated by `OrderService`.
-*   `POST /products/{productId}/restore`: `@PreAuthorize("hasRole('ORDER_MANAGER')")` - Also an internal, service-to-service call.
+*   `POST /products/{productId}/release`: `@PreAuthorize("hasRole('ORDER_MANAGER')")` - Also an internal, service-to-service call.
+*   `POST /products/{productId}/commit`: `@PreAuthorize("hasRole('ORDER_MANAGER')")` - Also an internal, service-to-service call.
 *   `POST /products/{productId}/restock`: `@PreAuthorize("hasAnyRole('ADMIN', 'PRODUCT_MANAGER')")` - For manually adding new stock.
 
 ### Order Service (`/api/orders`)

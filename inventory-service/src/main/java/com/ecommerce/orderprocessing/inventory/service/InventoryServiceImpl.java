@@ -67,11 +67,20 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public CompletableFuture<InventoryResponse> getInventoryByProductId(Long productId) {
         return CompletableFuture.supplyAsync(() -> {
             Inventory inventory = findInventoryByProductId(productId);
             return toInventoryResponse(inventory);
+        }, virtualThreadExecutor);
+    }
+
+    @Override
+    public CompletableFuture<Void> restockInventory(Long productId, Integer quantity) {
+        return CompletableFuture.runAsync(() -> {
+            Inventory inventory = findInventoryByProductId(productId);
+            inventory.restock(quantity);
+            inventoryRepository.save(inventory);
+            log.info("Restocked {} units of product {} (ID: {})", quantity, productId, productId);
         }, virtualThreadExecutor);
     }
 

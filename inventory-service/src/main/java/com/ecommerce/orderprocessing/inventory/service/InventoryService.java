@@ -10,5 +10,5 @@ public interface InventoryService {
     CompletableFuture<Void> releaseInventory(Long productId, Integer quantity);
     CompletableFuture<Void> commitInventory(Long productId, Integer quantity);
     CompletableFuture<InventoryResponse> getInventoryByProductId(Long productId);
-    // Add other methods as needed, e.g., for admin operations
+    CompletableFuture<Void> restockInventory(Long productId, Integer quantity);
 }

@@ -71,6 +71,11 @@ public class Inventory {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void restock(int quantity) {
+        this.stockQuantity += quantity;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
