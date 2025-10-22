@@ -1,4 +1,4 @@
-package com.ecommerce.orderprocessing.payment;
+package com.ecommerce.orderprocessing.payment.dto;
 
 import jakarta.validation.constraints.*;
 

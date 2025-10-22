@@ -43,6 +43,21 @@ spring:
     jwt:
       secret-key: ${JWT_SECRET:default_super_long_secret_key_for_tests_please_change_in_prod_ABCDEFGHIJKLMNOPQRSTUVWXYZ}
       expiration: ${JWT_EXPIRATION:3600000}
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            scope:
+              - email
+              - profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID:your-github-client-id}
+            client-secret: ${GITHUB_CLIENT_SECRET:your-github-client-secret}
+            scope:
+              - user:email
+              - read:user
       
 
   cache:

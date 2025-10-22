@@ -1,8 +1,8 @@
-package com.ecommerce.orderprocessing.payment;
+package com.ecommerce.orderprocessing.payment.controller;
 
-import com.ecommerce.orderprocessing.payment.PaymentRequest;
-import com.ecommerce.orderprocessing.payment.PaymentResponse;
-import com.ecommerce.orderprocessing.payment.PaymentService;
+import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.service.PaymentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;

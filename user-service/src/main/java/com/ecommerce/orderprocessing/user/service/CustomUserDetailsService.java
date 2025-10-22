@@ -33,7 +33,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                         user.getEmail(),
                         user.getPasswordHash(),
                         user.getRoles().stream().map(Role::getName).collect(Collectors.joining(",")),
-                        user.getIsActive()
+                        user.getIsActive() != null ? user.getIsActive() : false,
+                        new java.util.HashMap<>()
                 ))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }

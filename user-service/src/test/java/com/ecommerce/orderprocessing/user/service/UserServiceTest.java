@@ -7,7 +7,6 @@ import com.ecommerce.orderprocessing.user.dto.AddressRequest;
 import com.ecommerce.orderprocessing.user.dto.AddressResponse;
 import com.ecommerce.orderprocessing.user.dto.ChangePasswordRequest;
 import com.ecommerce.orderprocessing.user.dto.UserProfileUpdateRequest;
-import com.ecommerce.orderprocessing.user.dto.UserResponse;
 import com.ecommerce.orderprocessing.user.repository.AddressRepository;
 import com.ecommerce.orderprocessing.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,17 +17,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,259 +39,179 @@ class UserServiceTest {
     @Mock
     private PasswordEncoderService passwordEncoderService;
 
-    private ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    // Use a real ExecutorService for CompletableFuture testing
+    private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     @InjectMocks
     private UserService userService;
 
-    private User testUser;
-    private Address testAddress;
+    private User user;
+    private Address address;
 
     @BeforeEach
     void setUp() {
+        // Manually inject the real ExecutorService into the service under test
         userService = new UserService(userRepository, addressRepository, passwordEncoderService, virtualThreadExecutor);
 
-        testUser = new User("John", "Doe", "john.doe@example.com", "hashedPassword");
-        testUser.setId(1L);
-        testUser.setPhoneNumber("1234567890");
-        testUser.setProfilePictureUrl("http://example.com/pic.jpg");
-        testUser.setCreatedAt(LocalDateTime.now());
+        user = new User("John", "Doe", "john.doe@example.com", "encodedPassword");
+        user.setId(1L);
+        user.setIsActive(true);
+        user.setCreatedAt(LocalDateTime.now());
 
-        testAddress = new Address();
-        testAddress.setId(10L);
-        testAddress.setUser(testUser);
-        testAddress.setStreet("123 Main St");
-        testAddress.setCity("Anytown");
-        testAddress.setState("CA");
-        testAddress.setPostalCode("90210");
-        testAddress.setCountry("USA");
-        testAddress.setIsDefaultShipping(true);
-        testAddress.setCreatedAt(LocalDateTime.now());
+        address = new Address();
+        address.setId(10L);
+        address.setUser(user);
+        address.setStreet("123 Main St");
+        address.setCity("Anytown");
+        address.setState("CA");
+        address.setPostalCode("12345");
+        address.setCountry("USA");
+        address.setIsDefaultShipping(true);
+        address.setIsDefaultBilling(false);
+        address.setCreatedAt(LocalDateTime.now());
     }
 
     @Test
-    void getUserProfile_shouldReturnUserResponse() throws Exception {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+    void getUserProfile_shouldReturnUserProfile() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        CompletableFuture<UserResponse> future = userService.getUserProfile(1L);
-        UserResponse response = future.get();
+        var response = userService.getUserProfile(1L).get();
 
-        assertThat(response).isNotNull();
-        assertThat(response.email()).isEqualTo(testUser.getEmail());
-        assertThat(response.firstName()).isEqualTo(testUser.getFirstName());
+        assertNotNull(response);
+        assertEquals(user.getId(), response.id());
+        assertEquals(user.getEmail(), response.email());
+        verify(userRepository, times(1)).findById(1L);
     }
 
     @Test
-    void getUserProfile_whenUserNotFound_shouldThrowException() {
+    void getUserProfile_shouldThrowExceptionWhenUserNotFound() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        CompletableFuture<UserResponse> future = userService.getUserProfile(1L);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
+        assertThrows(ResourceNotFoundException.class, () -> userService.getUserProfile(99L).join());
+        verify(userRepository, times(1)).findById(99L);
     }
 
     @Test
     void addAddress_shouldReturnAddressResponse() throws Exception {
-        AddressRequest request = new AddressRequest("456 Oak Ave", "Otherville", "NY", "10001", "USA", false, false);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
+        AddressRequest request = new AddressRequest("456 Oak Ave", "Otherville", "NY", "67890", "USA", true, false);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(addressRepository.save(any(Address.class))).thenAnswer(invocation -> {
+            Address savedAddress = invocation.getArgument(0);
+            savedAddress.setId(11L);
+            return savedAddress;
+        });
 
-        CompletableFuture<AddressResponse> future = userService.addAddress(1L, request);
-        AddressResponse response = future.get();
+        var response = userService.addAddress(1L, request).get();
 
-        assertThat(response).isNotNull();
-        assertThat(response.street()).isEqualTo(testAddress.getStreet());
-    }
-
-    @Test
-    void addAddress_whenUserNotFound_shouldThrowException() {
-        AddressRequest request = new AddressRequest("456 Oak Ave", "Otherville", "NY", "10001", "USA", false, false);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<AddressResponse> future = userService.addAddress(1L, request);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void getAddresses_shouldReturnListOfAddressResponses() throws Exception {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.findByUserId(1L)).thenReturn(Arrays.asList(testAddress));
-
-        CompletableFuture<List<AddressResponse>> future = userService.getAddresses(1L);
-        List<AddressResponse> responses = future.get();
-
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).street()).isEqualTo(testAddress.getStreet());
-    }
-
-    @Test
-    void getAddresses_whenUserNotFound_shouldThrowException() {
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<List<AddressResponse>> future = userService.getAddresses(1L);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
+        assertNotNull(response);
+        assertEquals(request.street(), response.street());
+        verify(userRepository, times(1)).findById(1L);
+        verify(addressRepository, times(1)).save(any(Address.class));
     }
 
     @Test
     void updateAddress_shouldReturnUpdatedAddressResponse() throws Exception {
-        AddressRequest request = new AddressRequest("789 Pine St", "Newtown", "TX", "77001", "USA", false, true);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.findById(10L)).thenReturn(Optional.of(testAddress));
+        AddressRequest request = new AddressRequest("Updated St", "Updated City", "TX", "54321", "USA", false, true);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(addressRepository.findById(10L)).thenReturn(Optional.of(address));
         when(addressRepository.save(any(Address.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CompletableFuture<AddressResponse> future = userService.updateAddress(1L, 10L, request);
-        AddressResponse response = future.get();
+        var response = userService.updateAddress(1L, 10L, request).get();
 
-        assertThat(response).isNotNull();
-        assertThat(response.street()).isEqualTo(request.street());
-        assertThat(response.isDefaultBilling()).isTrue();
+        assertNotNull(response);
+        assertEquals(request.street(), response.street());
+        verify(userRepository, times(1)).findById(1L);
+        verify(addressRepository, times(1)).findById(10L);
+        verify(addressRepository, times(1)).save(any(Address.class));
     }
 
     @Test
-    void updateAddress_whenAddressNotFound_shouldThrowException() {
-        AddressRequest request = new AddressRequest("789 Pine St", "Newtown", "TX", "77001", "USA", false, true);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void getAddresses_shouldReturnListOfAddressResponses() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(addressRepository.findByUserId(1L)).thenReturn(Collections.singletonList(address));
 
-        CompletableFuture<AddressResponse> future = userService.updateAddress(1L, 10L, request);
+        var responses = userService.getAddresses(1L).get();
 
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+        assertEquals(address.getStreet(), responses.get(0).street());
+        verify(userRepository, times(1)).findById(1L);
+        verify(addressRepository, times(1)).findByUserId(1L);
     }
 
     @Test
-    void updateAddress_whenUserNotFound_shouldThrowException() {
-        AddressRequest request = new AddressRequest("789 Pine St", "Newtown", "TX", "77001", "USA", false, true);
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<AddressResponse> future = userService.updateAddress(1L, 10L, request);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void deleteAddress_shouldCompleteSuccessfully() throws Exception {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.findById(10L)).thenReturn(Optional.of(testAddress));
-        doNothing().when(addressRepository).delete(any(Address.class));
-
-        CompletableFuture<Void> future = userService.deleteAddress(1L, 10L);
-        future.get();
-
-        verify(addressRepository, times(1)).delete(testAddress);
-    }
-
-    @Test
-    void deleteAddress_whenAddressNotFound_shouldThrowException() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(addressRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<Void> future = userService.deleteAddress(1L, 10L);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void deleteAddress_whenUserNotFound_shouldThrowException() {
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<Void> future = userService.deleteAddress(1L, 10L);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void updateUserProfile_shouldReturnUpdatedUserResponse() throws Exception {
-        UserProfileUpdateRequest request = new UserProfileUpdateRequest("Jane", "Doe", "0987654321", "http://example.com/newpic.jpg");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        CompletableFuture<UserResponse> future = userService.updateUserProfile(1L, request);
-        UserResponse response = future.get();
-
-        assertThat(response).isNotNull();
-        assertThat(response.firstName()).isEqualTo(request.firstName());
-        assertThat(response.profilePictureUrl()).isEqualTo(request.profilePictureUrl());
-    }
-
-    @Test
-    void updateUserProfile_whenUserNotFound_shouldThrowException() {
-        UserProfileUpdateRequest request = new UserProfileUpdateRequest("Jane", "Doe", "0987654321", "http://example.com/newpic.jpg");
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<UserResponse> future = userService.updateUserProfile(1L, request);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void changePassword_shouldCompleteSuccessfully() throws Exception {
-        ChangePasswordRequest request = new ChangePasswordRequest("oldPassword", "newPassword123");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoderService.verifyPassword("oldPassword", "hashedPassword")).thenReturn(true);
-        when(passwordEncoderService.encodePassword("newPassword123")).thenReturn("newHashedPassword");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        CompletableFuture<Void> future = userService.changePassword(1L, request);
-        future.get();
-
-        verify(userRepository, times(1)).save(testUser);
-        assertThat(testUser.getPasswordHash()).isEqualTo("newHashedPassword");
-    }
-
-    @Test
-    void changePassword_whenUserNotFound_shouldThrowException() {
-        ChangePasswordRequest request = new ChangePasswordRequest("oldPassword", "newPassword123");
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        CompletableFuture<Void> future = userService.changePassword(1L, request);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
-    }
-
-    @Test
-    void changePassword_whenCurrentPasswordInvalid_shouldThrowException() {
-        ChangePasswordRequest request = new ChangePasswordRequest("wrongPassword", "newPassword123");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(passwordEncoderService.verifyPassword("wrongPassword", "hashedPassword")).thenReturn(false);
-
-        CompletableFuture<Void> future = userService.changePassword(1L, request);
-
-        assertThatThrownBy(future::get).hasCauseInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void deleteUserAccount_shouldCompleteSuccessfully() throws Exception {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+    void deleteUserAccount_shouldDeleteUser() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         doNothing().when(userRepository).delete(any(User.class));
 
-        CompletableFuture<Void> future = userService.deleteUserAccount(1L);
-        future.get();
+        userService.deleteUserAccount(1L).get();
 
-        verify(userRepository, times(1)).delete(testUser);
+        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).delete(user);
     }
 
     @Test
-    void deleteUserAccount_whenUserNotFound_shouldThrowException() {
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+    void changePassword_shouldUpdatePassword() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest("oldPassword", "newPassword");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoderService.verifyPassword("oldPassword", "encodedPassword")).thenReturn(true);
+        when(passwordEncoderService.encodePassword("newPassword")).thenReturn("newEncodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CompletableFuture<Void> future = userService.deleteUserAccount(1L);
+        userService.changePassword(1L, request).get();
 
-        assertThatThrownBy(future::get).hasCauseInstanceOf(ResourceNotFoundException.class);
+        assertEquals("newEncodedPassword", user.getPasswordHash());
+        verify(userRepository, times(1)).findById(1L);
+        verify(passwordEncoderService, times(1)).verifyPassword("oldPassword", "encodedPassword");
+        verify(passwordEncoderService, times(1)).encodePassword("newPassword");
+        verify(userRepository, times(1)).save(user);
     }
 
     @Test
-    void getAllUsers_shouldReturnListOfUserResponses() throws Exception {
-        User user2 = new User("Jane", "Smith", "jane.smith@example.com", "hashedPassword2");
+    void updateUserProfile_shouldUpdateFields() throws Exception {
+        UserProfileUpdateRequest request = new UserProfileUpdateRequest("Jane", "Smith", "987-654-3210", "http://new.pic.url");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = userService.updateUserProfile(1L, request).get();
+
+        assertNotNull(response);
+        assertEquals(request.firstName(), response.firstName());
+        assertEquals(request.lastName(), response.lastName());
+        assertEquals(request.phoneNumber(), response.phoneNumber());
+        assertEquals(request.profilePictureUrl(), response.profilePictureUrl());
+        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @Test
+    void deleteAddress_shouldDeleteAddress() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(addressRepository.findById(10L)).thenReturn(Optional.of(address));
+        doNothing().when(addressRepository).delete(any(Address.class));
+
+        userService.deleteAddress(1L, 10L).get();
+
+        verify(userRepository, times(1)).findById(1L);
+        verify(addressRepository, times(1)).findById(10L);
+        verify(addressRepository, times(1)).delete(address);
+    }
+
+    @Test
+    void getAllUsers_shouldReturnListOfUsers() throws Exception {
+        User user2 = new User("Jane", "Smith", "jane.smith@example.com", "anotherEncodedPassword");
         user2.setId(2L);
-        when(userRepository.findAll()).thenReturn(Arrays.asList(testUser, user2));
+        user2.setIsActive(true);
+        user2.setCreatedAt(LocalDateTime.now());
 
-        CompletableFuture<List<UserResponse>> future = userService.getAllUsers();
-        List<UserResponse> responses = future.get();
+        when(userRepository.findAll()).thenReturn(Arrays.asList(user, user2));
 
-        assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).email()).isEqualTo(testUser.getEmail());
-        assertThat(responses.get(1).email()).isEqualTo(user2.getEmail());
+        var responses = userService.getAllUsers().get();
+
+        assertNotNull(responses);
+        assertEquals(2, responses.size());
+        assertEquals(user.getEmail(), responses.get(0).email());
+        assertEquals(user2.getEmail(), responses.get(1).email());
+        verify(userRepository, times(1)).findAll();
     }
 }

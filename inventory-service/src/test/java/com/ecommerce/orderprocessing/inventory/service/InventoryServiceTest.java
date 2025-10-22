@@ -86,7 +86,7 @@ class InventoryServiceTest {
         when(inventoryRepository.save(any(Inventory.class))).thenReturn(inventory);
 
         // When
-        inventoryService.restoreInventory(1L, 5).get();
+        inventoryService.releaseInventory(1L, 5).get();
 
         // Then
         assertThat(inventory.getStockQuantity()).isEqualTo(10);

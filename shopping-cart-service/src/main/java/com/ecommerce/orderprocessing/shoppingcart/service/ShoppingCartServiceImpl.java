@@ -93,9 +93,8 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         return CompletableFuture.supplyAsync(() -> {
             ShoppingCart cart = shoppingCartRepository.findByCustomerId(customerId)
                     .orElseThrow(() -> new ResourceNotFoundException("Shopping cart not found"));
-
             CartItem itemToUpdate = cart.getCartItems().stream()
-                    .filter(item -> item.getProduct().getId().equals(productId))
+                    .filter(item -> item.getProductId().equals(productId))
                     .findFirst()
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart"));
 
@@ -113,7 +112,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                     .orElseThrow(() -> new ResourceNotFoundException("Shopping cart not found"));
 
             CartItem itemToRemove = cart.getCartItems().stream()
-                    .filter(item -> item.getProduct().getId().equals(productId))
+                    .filter(item -> item.getProductId().equals(productId))
                     .findFirst()
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart"));
 

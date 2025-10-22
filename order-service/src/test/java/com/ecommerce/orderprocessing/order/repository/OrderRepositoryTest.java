@@ -1,6 +1,6 @@
 package com.ecommerce.orderprocessing.order.repository;
 
-import com.ecommerce.orderprocessing.user.Customer;
+
 import com.ecommerce.orderprocessing.order.domain.entity.Order;
 import com.ecommerce.orderprocessing.order.domain.enumeration.OrderStatus;
 import org.junit.jupiter.api.Test;
@@ -25,33 +25,18 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Autowired
     private OrderRepository orderRepository;
 
-    @Test
-    void findByCustomer_shouldReturnOrders() {
-        // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
 
-        Order order = new Order(customer, "Address 1");
-        entityManager.persistAndFlush(order);
-
-        // When
-        Page<Order> orders = orderRepository.findByCustomer(customer, PageRequest.of(0, 10));
-
-        // Then
-        assertThat(orders).hasSize(1);
-    }
 
     @Test
     void findByCustomerId_shouldReturnOrders() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         entityManager.persistAndFlush(order);
 
         // When
-        Page<Order> orders = orderRepository.findByCustomerId(customer.getId(), PageRequest.of(0, 10));
+        Page<Order> orders = orderRepository.findByCustomerId(customerId, PageRequest.of(0, 10));
 
         // Then
         assertThat(orders).hasSize(1);
@@ -60,10 +45,9 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void findByStatus_shouldReturnOrders() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setStatus(OrderStatus.PENDING);
         entityManager.persistAndFlush(order);
 
@@ -77,10 +61,9 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void findOrdersCreatedBetween_shouldReturnOrders() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setCreatedAt(LocalDateTime.now().minusDays(1));
         entityManager.persistAndFlush(order);
 
@@ -91,30 +74,14 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
         assertThat(orders).hasSize(1);
     }
 
-    @Test
-    void findByCustomerAndStatus_shouldReturnOrders() {
-        // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
 
-        Order order = new Order(customer, "Address 1");
-        order.setStatus(OrderStatus.PENDING);
-        entityManager.persistAndFlush(order);
-
-        // When
-        List<Order> orders = orderRepository.findByCustomerAndStatus(customer, OrderStatus.PENDING);
-
-        // Then
-        assertThat(orders).hasSize(1);
-    }
 
     @Test
     void countByStatus_shouldReturnCount() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setStatus(OrderStatus.PENDING);
         entityManager.persistAndFlush(order);
 
@@ -128,19 +95,18 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void findRecentOrdersByCustomerId_shouldReturnOrders() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order1 = new Order(customer, "Address 1");
+        Order order1 = new Order(customerId, "Address 1");
         order1.setCreatedAt(LocalDateTime.now().minusDays(1));
         entityManager.persistAndFlush(order1);
 
-        Order order2 = new Order(customer, "Address 2");
+        Order order2 = new Order(customerId, "Address 2");
         order2.setCreatedAt(LocalDateTime.now());
         entityManager.persistAndFlush(order2);
 
         // When
-        List<Order> orders = orderRepository.findRecentOrdersByCustomerId(customer.getId(), PageRequest.of(0, 1));
+        List<Order> orders = orderRepository.findRecentOrdersByCustomerId(customerId, PageRequest.of(0, 1));
 
         // Then
         assertThat(orders).hasSize(1);
@@ -150,10 +116,9 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void findByPaymentId_shouldReturnOrder() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setPaymentId("payment123");
         entityManager.persistAndFlush(order);
 
@@ -168,18 +133,17 @@ class OrderRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void getOrderStatsByStatus_shouldReturnStats() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
 
-        Order order1 = new Order(customer, "Address 1");
+        Order order1 = new Order(customerId, "Address 1");
         order1.setStatus(OrderStatus.PENDING);
         entityManager.persistAndFlush(order1);
 
-        Order order2 = new Order(customer, "Address 2");
+        Order order2 = new Order(customerId, "Address 2");
         order2.setStatus(OrderStatus.PENDING);
         entityManager.persistAndFlush(order2);
 
-        Order order3 = new Order(customer, "Address 3");
+        Order order3 = new Order(customerId, "Address 3");
         order3.setStatus(OrderStatus.PAID);
         entityManager.persistAndFlush(order3);
 

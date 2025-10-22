@@ -1,4 +1,4 @@
-package com.ecommerce.orderprocessing.product;
+package com.ecommerce.orderprocessing.product.repository;
 
 
 import com.ecommerce.orderprocessing.product.Product;

@@ -2,7 +2,7 @@ package com.ecommerce.orderprocessing.product.service;
 
 import com.ecommerce.orderprocessing.common.exception.ResourceNotFoundException;
 import com.ecommerce.orderprocessing.product.Product;
-import com.ecommerce.orderprocessing.product.ProductRepository;
+import com.ecommerce.orderprocessing.product.repository.ProductRepository;
 import com.ecommerce.orderprocessing.product.ProductResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,8 +51,6 @@ public class ProductCatalogServiceImpl implements ProductCatalogService {
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
-                // stockQuantity will be removed from ProductResponse later
-                product.getStockQuantity(), // Temporary, will be removed
                 product.getIsActive(),
                 product.getCreatedAt(),
                 product.getUpdatedAt()

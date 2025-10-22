@@ -2,7 +2,7 @@ package com.ecommerce.orderprocessing.config;
 
 import com.ecommerce.orderprocessing.user.controller.AuthController;
 import com.ecommerce.orderprocessing.order.controller.OrderController;
-import com.ecommerce.orderprocessing.user.repository.CustomerRepository;
+import com.ecommerce.orderprocessing.user.repository.UserRepository;
 import com.ecommerce.orderprocessing.user.security.JwtTokenProvider;
 import com.ecommerce.orderprocessing.user.service.AuthenticationService;
 import com.ecommerce.orderprocessing.user.service.CustomUserDetailsService;
@@ -19,15 +19,18 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.context.annotation.Import;
+
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(controllers = {AuthController.class, OrderController.class})
+@Import(SecurityConfig.class)
 class SecurityConfigTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private CustomerRepository customerRepository;
+    private UserRepository userRepository;
 
     @MockBean
     private AuthenticationService authenticationService;
@@ -43,28 +46,29 @@ class SecurityConfigTest {
 
     @Test
     void whenUnauthenticated_thenPublicEndpointsAreAccessible() throws Exception {
-        mockMvc.perform(get("/api/auth/login"))
-                .andExpect(status().isBadRequest()); // Expecting 400 due to no request body
-    }
-
-    @Test
-    void whenUnauthenticated_thenSecureEndpointsAreInaccessible() throws Exception {
-        mockMvc.perform(get("/api/orders"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser(roles = "CUSTOMER")
-    void whenAuthenticatedAsCustomer_thenCustomerEndpointsAreAccessible() throws Exception {
-        mockMvc.perform(get("/api/orders/customer/1"))
-                .andExpect(status().isNotFound()); // Expecting 404 because no data is mocked
-    }
-
-    @Test
-    @WithMockUser(roles = "CUSTOMER")
-    void whenAuthenticatedAsCustomer_thenAdminEndpointsAreInaccessible() throws Exception {
-        mockMvc.perform(get("/api/orders/admin/all"))
-                .andExpect(status().isForbidden());
+                mockMvc.perform(get("/api/auth/login"))
+                        .andExpect(status().isMethodNotAllowed());
+        
+            }
+        
+            @Test
+            void whenUnauthenticated_thenSecureEndpointsAreInaccessible() throws Exception {
+                mockMvc.perform(get("/api/orders"))
+                        .andExpect(status().isUnauthorized());
+            }
+        
+            @Test
+            @WithMockUser(roles = "CUSTOMER")
+            void whenAuthenticatedAsCustomer_thenCustomerEndpointsAreAccessible() throws Exception {
+                mockMvc.perform(get("/api/orders/customer/1"))
+                        .andExpect(status().isNotFound()); // Expecting 404 because no data is mocked
+            }
+        
+            @Test
+            @WithMockUser(roles = "CUSTOMER")
+            void whenAuthenticatedAsCustomer_thenAdminEndpointsAreInaccessible() throws Exception {
+                mockMvc.perform(get("/api/orders/admin/all"))
+                        .andExpect(status().isForbidden());
     }
 
     @Test

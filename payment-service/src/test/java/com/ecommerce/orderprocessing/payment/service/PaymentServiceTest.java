@@ -1,8 +1,9 @@
 package com.ecommerce.orderprocessing.payment.service;
 
-import com.ecommerce.orderprocessing.payment.PaymentRequest;
-import com.ecommerce.orderprocessing.payment.PaymentResponse;
-import com.ecommerce.orderprocessing.payment.PaymentProcessingException;
+import com.ecommerce.orderprocessing.payment.PaymentGatewayClient;
+import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.exception.PaymentProcessingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

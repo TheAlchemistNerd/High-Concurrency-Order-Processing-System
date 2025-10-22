@@ -122,4 +122,3 @@ class ShoppingCartControllerTest {
                 .andExpect(status().isOk());
     }
 }
-

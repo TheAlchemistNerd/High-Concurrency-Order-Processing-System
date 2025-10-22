@@ -1,9 +1,9 @@
 package com.ecommerce.orderprocessing.order.repository;
 
-import com.ecommerce.orderprocessing.user.Customer;
+
 import com.ecommerce.orderprocessing.order.domain.entity.Order;
 import com.ecommerce.orderprocessing.order.domain.entity.OrderItem;
-import com.ecommerce.orderprocessing.product.Product;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -29,16 +29,13 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void findByOrder_shouldReturnOrderItems() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long productId = 1L; // Dummy productId
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem = new OrderItem(product, 1, BigDecimal.TEN);
+        OrderItem orderItem = new OrderItem(productId, 1, BigDecimal.TEN);
         orderItem.setOrder(order);
         entityManager.persistAndFlush(orderItem);
 
@@ -49,51 +46,27 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
         assertThat(orderItems).hasSize(1);
     }
 
-    @Test
-    void findByProduct_shouldReturnOrderItems() {
-        // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
-        entityManager.persistAndFlush(order);
-
-        OrderItem orderItem = new OrderItem(product, 1, BigDecimal.TEN);
-        orderItem.setOrder(order);
-        entityManager.persistAndFlush(orderItem);
-
-        // When
-        List<OrderItem> orderItems = orderItemRepository.findByProduct(product);
-
-        // Then
-        assertThat(orderItems).hasSize(1);
-    }
 
     @Test
     void getTotalQuantitySoldForProduct_shouldReturnTotalQuantity() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long productId = 1L; // Dummy productId
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem1 = new OrderItem(product, 2, BigDecimal.TEN);
+        OrderItem orderItem1 = new OrderItem(productId, 2, BigDecimal.TEN);
         orderItem1.setOrder(order);
         entityManager.persistAndFlush(orderItem1);
 
-        OrderItem orderItem2 = new OrderItem(product, 3, BigDecimal.TEN);
+        OrderItem orderItem2 = new OrderItem(productId, 3, BigDecimal.TEN);
         orderItem2.setOrder(order);
         entityManager.persistAndFlush(orderItem2);
 
         // When
-        Integer totalQuantity = orderItemRepository.getTotalQuantitySoldForProduct(product.getId());
+        Integer totalQuantity = orderItemRepository.getTotalQuantitySoldForProduct(productId);
 
         // Then
         assertThat(totalQuantity).isEqualTo(5);
@@ -102,23 +75,18 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void getBestSellingProducts_shouldReturnBestSelling() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long product1Id = 1L; // Dummy productId
+        Long product2Id = 2L; // Dummy productId
 
-        Product product1 = new Product("Product 1", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product1);
-
-        Product product2 = new Product("Product 2", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product2);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem1 = new OrderItem(product1, 5, BigDecimal.TEN);
+        OrderItem orderItem1 = new OrderItem(product1Id, 5, BigDecimal.TEN);
         orderItem1.setOrder(order);
         entityManager.persistAndFlush(orderItem1);
 
-        OrderItem orderItem2 = new OrderItem(product2, 10, BigDecimal.TEN);
+        OrderItem orderItem2 = new OrderItem(product2Id, 10, BigDecimal.TEN);
         orderItem2.setOrder(order);
         entityManager.persistAndFlush(orderItem2);
 
@@ -127,23 +95,20 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
 
         // Then
         assertThat(bestSellingProducts).hasSize(1);
-        assertThat(bestSellingProducts.get(0).product()).isEqualTo(product2);
+        assertThat(bestSellingProducts.get(0).productId()).isEqualTo(product2Id);
     }
 
     @Test
     void findOrderItemsByDateRange_shouldReturnOrderItems() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long productId = 1L; // Dummy productId
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setCreatedAt(LocalDateTime.now().minusDays(1));
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem = new OrderItem(product, 1, BigDecimal.TEN);
+        OrderItem orderItem = new OrderItem(productId, 1, BigDecimal.TEN);
         orderItem.setOrder(order);
         entityManager.persistAndFlush(orderItem);
 
@@ -157,25 +122,22 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void getTotalRevenueForProduct_shouldReturnTotalRevenue() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long productId = 1L; // Dummy productId
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem1 = new OrderItem(product, 2, BigDecimal.TEN);
+        OrderItem orderItem1 = new OrderItem(productId, 2, BigDecimal.TEN);
         orderItem1.setOrder(order);
         entityManager.persistAndFlush(orderItem1);
 
-        OrderItem orderItem2 = new OrderItem(product, 3, BigDecimal.TEN);
+        OrderItem orderItem2 = new OrderItem(productId, 3, BigDecimal.TEN);
         orderItem2.setOrder(order);
         entityManager.persistAndFlush(orderItem2);
 
         // When
-        BigDecimal totalRevenue = orderItemRepository.getTotalRevenueForProduct(product.getId());
+        BigDecimal totalRevenue = orderItemRepository.getTotalRevenueForProduct(productId);
 
         // Then
         assertThat(totalRevenue).isEqualByComparingTo(BigDecimal.valueOf(50));
@@ -184,17 +146,14 @@ class OrderItemRepositoryTest extends AbstractContainerBaseTest {
     @Test
     void getTotalRevenueForPeriod_shouldReturnTotalRevenue() {
         // Given
-        Customer customer = new Customer("Test Customer", "test@test.com", "password");
-        entityManager.persistAndFlush(customer);
+        Long customerId = 1L; // Dummy customerId
+        Long productId = 1L; // Dummy productId
 
-        Product product = new Product("Test Product", "Description", BigDecimal.TEN, 10);
-        entityManager.persistAndFlush(product);
-
-        Order order = new Order(customer, "Address 1");
+        Order order = new Order(customerId, "Address 1");
         order.setCreatedAt(LocalDateTime.now().minusDays(1));
         entityManager.persistAndFlush(order);
 
-        OrderItem orderItem = new OrderItem(product, 2, BigDecimal.TEN);
+        OrderItem orderItem = new OrderItem(productId, 2, BigDecimal.TEN);
         orderItem.setOrder(order);
         entityManager.persistAndFlush(orderItem);
 

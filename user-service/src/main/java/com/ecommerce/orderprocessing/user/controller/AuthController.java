@@ -8,14 +8,13 @@ import com.ecommerce.orderprocessing.user.service.AuthenticationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.concurrent.CompletableFuture;
 
-@RestController
+@Controller
 @RequestMapping("/api/auth")
 public class AuthController {
 
@@ -35,5 +34,15 @@ public class AuthController {
     public CompletableFuture<ResponseEntity<UserResponse>> register(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
         return authenticationService.register(registrationRequest)
                 .thenApply(customer -> ResponseEntity.status(HttpStatus.CREATED).body(customer));
+    }
+
+    @GetMapping("/login/oauth2")
+    public RedirectView oauth2Login(@RequestParam("provider") String provider) {
+        return new RedirectView("/oauth2/authorization/" + provider);
+    }
+
+    @GetMapping("/login/oauth2/code/home")
+    public RedirectView oauth2Home(@RequestParam("token") String token) {
+        return new RedirectView("http://localhost:3000/oauth2/redirect?token=" + token);
     }
 }

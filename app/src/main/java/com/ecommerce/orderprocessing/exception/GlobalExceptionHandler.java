@@ -5,7 +5,7 @@ import com.ecommerce.orderprocessing.common.exception.BadRequestException;
 import com.ecommerce.orderprocessing.common.exception.ExternalServiceException;
 import com.ecommerce.orderprocessing.common.exception.ResourceNotFoundException;
 import com.ecommerce.orderprocessing.inventory.exception.InsufficientStockException;
-import com.ecommerce.orderprocessing.payment.PaymentProcessingException;
+import com.ecommerce.orderprocessing.payment.exception.PaymentProcessingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

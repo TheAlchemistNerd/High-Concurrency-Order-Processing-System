@@ -1,7 +1,7 @@
 package com.ecommerce.orderprocessing.payment;
 
-import com.ecommerce.orderprocessing.payment.PaymentRequest;
-import com.ecommerce.orderprocessing.payment.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
 import com.ecommerce.orderprocessing.common.exception.ExternalServiceException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

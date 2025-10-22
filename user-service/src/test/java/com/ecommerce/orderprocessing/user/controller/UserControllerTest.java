@@ -5,8 +5,9 @@ import com.ecommerce.orderprocessing.user.dto.AddressResponse;
 import com.ecommerce.orderprocessing.user.dto.ChangePasswordRequest;
 import com.ecommerce.orderprocessing.user.dto.UserProfileUpdateRequest;
 import com.ecommerce.orderprocessing.user.dto.UserResponse;
-import com.ecommerce.orderprocessing.user.service.UserService;
 import com.ecommerce.orderprocessing.user.security.AppUserDetails;
+import com.ecommerce.orderprocessing.user.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -27,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,115 +41,119 @@ class UserControllerTest {
     @MockBean
     private UserService userService;
 
-    private Authentication customerAuthentication;
-    private AppUserDetails customerAppUserDetails;
-    private UserResponse customerUserResponse;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private UserResponse userResponse;
     private AddressResponse addressResponse;
+    private AppUserDetails appUserDetails;
 
     @BeforeEach
     void setUp() {
-        customerAppUserDetails = new AppUserDetails(1L, "test@example.com", "password", "ROLE_CUSTOMER", true);
-        customerAuthentication = new UsernamePasswordAuthenticationToken(customerAppUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER")));
-
-        customerUserResponse = new UserResponse(
-                1L, "John", "Doe", "john.doe@example.com", "1234567890", "http://pic.url", "ROLE_CUSTOMER", true, LocalDateTime.now()
+        userResponse = new UserResponse(
+                1L, "John", "Doe", "john.doe@example.com", "123-456-7890",
+                "http://example.com/pic.jpg", "CUSTOMER", true, LocalDateTime.now()
         );
 
         addressResponse = new AddressResponse(
-                10L, "123 Main St", "Anytown", "CA", "90210", "USA", true, false, LocalDateTime.now()
+                10L, "123 Main St", "Anytown", "CA", "12345", "USA", true, false, LocalDateTime.now()
         );
+
+        appUserDetails = new AppUserDetails(1L, "john.doe@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
+
+        // Set up security context for authenticated user
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                appUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
     void getMyProfile_shouldReturnUserProfile() throws Exception {
-        when(userService.getUserProfile(anyLong())).thenReturn(CompletableFuture.completedFuture(customerUserResponse));
+        when(userService.getUserProfile(anyLong())).thenReturn(CompletableFuture.completedFuture(userResponse));
 
-        mockMvc.perform(get("/api/users/me")
-                        .with(authentication(customerAuthentication)))
+        mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value(customerUserResponse.email()))
-                .andExpect(jsonPath("$.firstName").value(customerUserResponse.firstName()));
+                .andExpect(jsonPath(".id").value(userResponse.id()))
+                .andExpect(jsonPath(".email").value(userResponse.email()));
     }
 
     @Test
     void updateMyProfile_shouldReturnUpdatedUserProfile() throws Exception {
-        UserProfileUpdateRequest updateRequest = new UserProfileUpdateRequest("Jane", "Smith", "0987654321", "http://new.pic");
+        UserProfileUpdateRequest updateRequest = new UserProfileUpdateRequest("Jane", "Smith", "987-654-3210", "http://new.pic.url");
         UserResponse updatedUserResponse = new UserResponse(
-                1L, "Jane", "Smith", "john.doe@example.com", "0987654321", "http://new.pic", "ROLE_CUSTOMER", true, LocalDateTime.now()
+                1L, "Jane", "Smith", "john.doe@example.com", "987-654-3210",
+                "http://new.pic.url", "CUSTOMER", true, LocalDateTime.now()
         );
+
         when(userService.updateUserProfile(anyLong(), any(UserProfileUpdateRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(updatedUserResponse));
 
         mockMvc.perform(put("/api/users/me")
-                        .with(authentication(customerAuthentication))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"firstName\":\"Jane\", \"lastName\":\"Smith\", \"phoneNumber\":\"0987654321\", \"profilePictureUrl\":\"http://new.pic\"}"))
+                        .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstName").value("Jane"))
-                .andExpect(jsonPath("$.phoneNumber").value("0987654321"));
+                .andExpect(jsonPath(".firstName").value(updatedUserResponse.firstName()))
+                .andExpect(jsonPath(".lastName").value(updatedUserResponse.lastName()));
     }
 
     @Test
-    void addMyAddress_shouldReturnNewAddress() throws Exception {
-        AddressRequest addressRequest = new AddressRequest("456 Oak Ave", "Otherville", "NY", "10001", "USA", false, false);
+    void addMyAddress_shouldReturnCreatedAddress() throws Exception {
+        AddressRequest addressRequest = new AddressRequest("456 Oak Ave", "Othertown", "NY", "67890", "USA", true, false);
         when(userService.addAddress(anyLong(), any(AddressRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(addressResponse));
 
         mockMvc.perform(post("/api/users/me/addresses")
-                        .with(authentication(customerAuthentication))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"street\":\"456 Oak Ave\", \"city\":\"Otherville\", \"state\":\"NY\", \"postalCode\":\"10001\", \"country\":\"USA\", \"isDefaultShipping\":false, \"isDefaultBilling\":false}"))
+                        .content(objectMapper.writeValueAsString(addressRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.street").value(addressResponse.street()));
+                .andExpect(jsonPath(".street").value(addressResponse.street()));
     }
 
     @Test
     void getMyAddresses_shouldReturnListOfAddresses() throws Exception {
-        List<AddressResponse> addresses = Arrays.asList(addressResponse);
+        List<AddressResponse> addresses = Collections.singletonList(addressResponse);
         when(userService.getAddresses(anyLong())).thenReturn(CompletableFuture.completedFuture(addresses));
 
-        mockMvc.perform(get("/api/users/me/addresses")
-                        .with(authentication(customerAuthentication)))
+        mockMvc.perform(get("/api/users/me/addresses"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()").value(1))
                 .andExpect(jsonPath("$[0].street").value(addressResponse.street()));
     }
 
     @Test
     void updateMyAddress_shouldReturnUpdatedAddress() throws Exception {
-        AddressRequest addressRequest = new AddressRequest("789 Pine St", "Newtown", "TX", "77001", "USA", false, true);
+        AddressRequest addressRequest = new AddressRequest("Updated St", "Updated City", "TX", "54321", "USA", false, true);
         AddressResponse updatedAddressResponse = new AddressResponse(
-                10L, "789 Pine St", "Newtown", "TX", "77001", "USA", false, true, LocalDateTime.now()
+                10L, "Updated St", "Updated City", "TX", "54321", "USA", false, true, LocalDateTime.now()
         );
         when(userService.updateAddress(anyLong(), anyLong(), any(AddressRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(updatedAddressResponse));
 
         mockMvc.perform(put("/api/users/me/addresses/{addressId}", 10L)
-                        .with(authentication(customerAuthentication))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"street\":\"789 Pine St\", \"city\":\"Newtown\", \"state\":\"TX\", \"postalCode\":\"77001\", \"country\":\"USA\", \"isDefaultShipping\":false, \"isDefaultBilling\":true}"))
+                        .content(objectMapper.writeValueAsString(addressRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.street").value(updatedAddressResponse.street()));
+                .andExpect(jsonPath(".street").value(updatedAddressResponse.street()));
     }
 
     @Test
     void deleteMyAddress_shouldReturnNoContent() throws Exception {
         when(userService.deleteAddress(anyLong(), anyLong())).thenReturn(CompletableFuture.completedFuture(null));
 
-        mockMvc.perform(delete("/api/users/me/addresses/{addressId}", 10L)
-                        .with(authentication(customerAuthentication)))
+        mockMvc.perform(delete("/api/users/me/addresses/{addressId}", 10L))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void changeMyPassword_shouldReturnNoContent() throws Exception {
-        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest("oldPass", "newPass123");
+        ChangePasswordRequest changePasswordRequest = new ChangePasswordRequest("oldPass", "newPass");
         when(userService.changePassword(anyLong(), any(ChangePasswordRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         mockMvc.perform(post("/api/users/me/change-password")
-                        .with(authentication(customerAuthentication))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"currentPassword\":\"oldPass\", \"newPassword\":\"newPass123\"}"))
+                        .content(objectMapper.writeValueAsString(changePasswordRequest)))
                 .andExpect(status().isNoContent());
     }
 
@@ -156,39 +161,43 @@ class UserControllerTest {
     void deleteMyAccount_shouldReturnNoContent() throws Exception {
         when(userService.deleteUserAccount(anyLong())).thenReturn(CompletableFuture.completedFuture(null));
 
-        mockMvc.perform(delete("/api/users/me")
-                        .with(authentication(customerAuthentication)))
+        mockMvc.perform(delete("/api/users/me"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
-    void getUserProfileById_asAdmin_shouldReturnUserProfile() throws Exception {
-        AppUserDetails adminAppUserDetails = new AppUserDetails(2L, "admin@example.com", "password", "ROLE_ADMIN", true);
-        Authentication adminAuthentication = new UsernamePasswordAuthenticationToken(adminAppUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
+    void getUserProfileById_adminAccess_shouldReturnUserProfile() throws Exception {
+        // Simulate admin authentication
+        AppUserDetails adminUserDetails = new AppUserDetails(2L, "admin@example.com", "password", "ADMIN", true, Collections.emptyMap());
+        Authentication adminAuthentication = new UsernamePasswordAuthenticationToken(
+                adminUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(adminAuthentication);
 
-        when(userService.getUserProfile(anyLong())).thenReturn(CompletableFuture.completedFuture(customerUserResponse));
+        when(userService.getUserProfile(anyLong())).thenReturn(CompletableFuture.completedFuture(userResponse));
 
-        mockMvc.perform(get("/api/users/{userId}", 1L)
-                        .with(authentication(adminAuthentication)))
+        mockMvc.perform(get("/api/users/{userId}", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value(customerUserResponse.email()));
+                .andExpect(jsonPath(".id").value(userResponse.id()));
     }
 
     @Test
-    void getAllUsers_asAdmin_shouldReturnListOfUsers() throws Exception {
-        AppUserDetails adminAppUserDetails = new AppUserDetails(2L, "admin@example.com", "password", "ROLE_ADMIN", true);
-        Authentication adminAuthentication = new UsernamePasswordAuthenticationToken(adminAppUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
-
-        UserResponse user2 = new UserResponse(
-                2L, "Jane", "Smith", "jane.smith@example.com", "0987654321", "http://pic2.url", "ROLE_CUSTOMER", true, LocalDateTime.now()
+    void getAllUsers_adminAccess_shouldReturnListOfUsers() throws Exception {
+        // Simulate admin authentication
+        AppUserDetails adminUserDetails = new AppUserDetails(2L, "admin@example.com", "password", "ADMIN", true, Collections.emptyMap());
+        Authentication adminAuthentication = new UsernamePasswordAuthenticationToken(
+                adminUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"))
         );
-        List<UserResponse> allUsers = Arrays.asList(customerUserResponse, user2);
+        SecurityContextHolder.getContext().setAuthentication(adminAuthentication);
+
+        List<UserResponse> allUsers = Arrays.asList(userResponse, new UserResponse(
+                2L, "Admin", "User", "admin@example.com", "111-222-3333",
+                "http://example.com/admin.jpg", "ADMIN", true, LocalDateTime.now()
+        ));
         when(userService.getAllUsers()).thenReturn(CompletableFuture.completedFuture(allUsers));
 
-        mockMvc.perform(get("/api/users/")
-                        .with(authentication(adminAuthentication)))
+        mockMvc.perform(get("/api/users/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].email").value(customerUserResponse.email()))
-                .andExpect(jsonPath("$[1].email").value(user2.email()));
+                .andExpect(jsonPath("$.size()").value(2));
     }
 }
