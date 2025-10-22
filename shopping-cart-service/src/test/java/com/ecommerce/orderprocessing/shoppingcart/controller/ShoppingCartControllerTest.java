@@ -1,9 +1,11 @@
 package com.ecommerce.orderprocessing.shoppingcart.controller;
 
 import com.ecommerce.orderprocessing.shoppingcart.dto.AddCartItemRequest;
-import com.ecommerce.orderprocessing.shoppingcart.dto.UpdateCartItemRequest;
 import com.ecommerce.orderprocessing.shoppingcart.dto.ShoppingCartResponse;
+import com.ecommerce.orderprocessing.shoppingcart.dto.UpdateCartItemRequest;
 import com.ecommerce.orderprocessing.shoppingcart.service.ShoppingCartService;
+import com.ecommerce.orderprocessing.user.security.AppUserDetails;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,10 @@ import com.ecommerce.orderprocessing.user.security.JwtAuthenticationEntryPoint;
 import com.ecommerce.orderprocessing.user.security.JwtAuthenticationFilter;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,8 +33,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(ShoppingCartController.class)
@@ -46,6 +50,19 @@ class ShoppingCartControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private AppUserDetails appUserDetails;
+
+    @BeforeEach
+    void setUp() {
+        appUserDetails = new AppUserDetails(1L, "john.doe@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
+
+        // Set up security context for authenticated user
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                appUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     @Test
     void getShoppingCart_shouldReturnShoppingCart() throws Exception {
         // Given
@@ -58,6 +75,19 @@ class ShoppingCartControllerTest {
         mockMvc.perform(get("/api/cart/{customerId}", customerId))
                 .andExpect(request().asyncStarted())
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void getShoppingCart_unauthenticated_shouldReturnUnauthorized() throws Exception {
+        SecurityContextHolder.clearContext();
+        mockMvc.perform(get("/api/cart/{customerId}", 1L))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getShoppingCart_differentUser_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/api/cart/{customerId}", 2L))
+                .andExpect(status().isForbidden());
     }
 
     @Test

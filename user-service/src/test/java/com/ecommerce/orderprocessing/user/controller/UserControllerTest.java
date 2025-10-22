@@ -79,6 +79,13 @@ class UserControllerTest {
     }
 
     @Test
+    void getMyProfile_unauthenticated_shouldReturnUnauthorized() throws Exception {
+        SecurityContextHolder.clearContext();
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void updateMyProfile_shouldReturnUpdatedUserProfile() throws Exception {
         UserProfileUpdateRequest updateRequest = new UserProfileUpdateRequest("Jane", "Smith", "987-654-3210", "http://new.pic.url");
         UserResponse updatedUserResponse = new UserResponse(
@@ -182,6 +189,12 @@ class UserControllerTest {
     }
 
     @Test
+    void getUserProfileById_customerAccess_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/api/users/{userId}", 2L))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void getAllUsers_adminAccess_shouldReturnListOfUsers() throws Exception {
         // Simulate admin authentication
         AppUserDetails adminUserDetails = new AppUserDetails(2L, "admin@example.com", "password", "ADMIN", true, Collections.emptyMap());
@@ -199,5 +212,11 @@ class UserControllerTest {
         mockMvc.perform(get("/api/users/"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(2));
+    }
+
+    @Test
+    void getAllUsers_customerAccess_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/api/users/"))
+                .andExpect(status().isForbidden());
     }
 }
