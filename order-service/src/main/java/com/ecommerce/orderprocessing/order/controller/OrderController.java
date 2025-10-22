@@ -4,9 +4,9 @@ import com.ecommerce.orderprocessing.order.service.OrderService;
 import com.ecommerce.orderprocessing.order.dto.CreateOrderRequest;
 import com.ecommerce.orderprocessing.order.dto.OrderResponse;
 import com.ecommerce.orderprocessing.order.dto.UpdateOrderStatusRequest;
-import com.ecommerce.orderprocessing.payment.PaymentRequest;
+import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
 import com.ecommerce.orderprocessing.common.dto.PagedResponse;
-import com.ecommerce.orderprocessing.payment.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 

@@ -2,7 +2,7 @@ package com.ecommerce.orderprocessing.order.repository;
 
 import com.ecommerce.orderprocessing.order.domain.entity.Order;
 import com.ecommerce.orderprocessing.order.domain.entity.OrderItem;
-import com.ecommerce.orderprocessing.product.Product;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,18 +23,18 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 
-    List<OrderItem> findByProduct(Product product);
+    List<OrderItem> findByProductId(Long productId);
 
-    @Query("SELECT COALESCE(SUM(oi.quantity), 0) FROM OrderItem oi WHERE oi.product.id = :productId")
+    @Query("SELECT COALESCE(SUM(oi.quantity), 0) FROM OrderItem oi WHERE oi.productId = :productId")
     Integer getTotalQuantitySoldForProduct(@Param("productId") Long productId);
 
     /**
      * Get best-selling products using a type-safe record projection.
      */
     @Query("""
-        SELECT new com.ecommerce.orderprocessing.order.repository.BestSellingProduct(oi.product, SUM(oi.quantity))
+        SELECT new com.ecommerce.orderprocessing.order.repository.BestSellingProduct(oi.productId, SUM(oi.quantity))
         FROM OrderItem oi
-        GROUP BY oi.product
+        GROUP BY oi.productId
         ORDER BY SUM(oi.quantity) DESC
     """)
     List<BestSellingProduct> getBestSellingProducts(Pageable pageable);
@@ -48,7 +48,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             @Param("endDate") LocalDateTime endDate
     );
 
-    @Query("SELECT COALESCE(SUM(oi.subtotal), java.math.BigDecimal.ZERO) FROM OrderItem oi WHERE oi.product.id = :productId")
+    @Query("SELECT COALESCE(SUM(oi.subtotal), java.math.BigDecimal.ZERO) FROM OrderItem oi WHERE oi.productId = :productId")
     BigDecimal getTotalRevenueForProduct(@Param("productId") Long productId);
 
     @Query("""

@@ -1,8 +1,8 @@
 package com.ecommerce.orderprocessing.payment.controller;
 
-import com.ecommerce.orderprocessing.payment.PaymentRequest;
-import com.ecommerce.orderprocessing.payment.PaymentResponse;
-import com.ecommerce.orderprocessing.payment.PaymentService;
+import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.service.PaymentService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 

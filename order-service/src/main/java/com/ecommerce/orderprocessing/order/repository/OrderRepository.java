@@ -38,7 +38,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("""
         SELECT o FROM Order o
-        WHERE o.customer.id = :customerId 
+        WHERE o.customerId = :customerId 
         ORDER BY o.createdAt DESC
     """)
     List<Order> findRecentOrdersByCustomerId(@Param("customerId") Long customerId, Pageable pageable);

@@ -1,4 +1,4 @@
-package com.ecommerce.orderprocessing.payment;
+package com.ecommerce.orderprocessing.payment.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
