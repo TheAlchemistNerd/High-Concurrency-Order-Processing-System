@@ -37,3 +37,6 @@ out/
 .vscode/
 
 setup_db.sh
+
+# Log files
+/app/logs/
