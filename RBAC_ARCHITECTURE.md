@@ -45,6 +45,50 @@ Endpoint protection will be enforced using Spring Security's method security ann
 *   `@PreAuthorize("hasAnyRole('ADMIN', 'ORDER_MANAGER')")`: Allows users with either role.
 *   `@PreAuthorize("hasRole('CUSTOMER') and #customerId == authentication.principal.id")`: A powerful expression that ensures a user is a `CUSTOMER` AND is only accessing their own data.
 
+### 2.4. Authentication and Authorization Details
+
+The `user-service` module is central to managing user identities and access control. It provides multiple authentication paths, all converging on a robust, JWT-based authorization mechanism.
+
+#### 2.4.1. Authentication Paths
+
+1.  **Local Username/Password Authentication:**
+    *   **Flow:** Users provide their email and password to the `AuthController.login()` endpoint. The `AuthenticationService.authenticate()` method then verifies these credentials against the stored user data and securely hashed passwords.
+    *   **JWT Issuance:** Upon successful authentication, the `JwtTokenProvider.generateToken()` method is invoked to create a JSON Web Token (JWT). This JWT encapsulates essential user information, including their assigned roles.
+    *   **Client Response:** The client receives a `LoginResponse` containing the newly generated JWT, which is then used for subsequent authenticated requests.
+
+2.  **OAuth2/Social Authentication (e.g., Google, Facebook):**
+    *   **Flow Initiation:** Users initiate login by clicking a "Login with Google" or "Login with Facebook" button, which directs them to `AuthController.oauth2Login()`. This, in turn, redirects the user to the respective OAuth2 provider for authentication.
+    *   **Provider Authentication & Callback:** After successful authentication with the OAuth2 provider, the user is redirected back to the application with an authorization code. Spring Security intercepts this callback.
+    *   **User Loading/Creation:** The `SecurityConfig` utilizes the `CustomOAuth2UserService` to process the user information received from the OAuth2 provider. This service either loads an existing local user account associated with the provided email or creates a new user account if one doesn't exist, assigning default roles (e.g., `ROLE_CUSTOMER`).
+    *   **JWT Issuance:** Following successful user loading/creation, the `OAuth2AuthenticationSuccessHandler` is invoked. This handler is responsible for generating a JWT (typically by calling `JwtTokenProvider.generateToken()`) and returning it to the client, often via a redirect with the token embedded in a URL parameter or a cookie.
+    *   **Client Usage:** The client then uses this JWT for all subsequent authenticated requests.
+
+#### 2.4.2. Authorization Mechanism
+
+Once a user is authenticated (via either local credentials or OAuth2) and possesses a JWT, authorization for subsequent requests is handled as follows:
+
+*   **JWT Reception:** The client includes the JWT in the `Authorization` header of every request to protected resources.
+*   **Filter Interception:** The `JwtAuthenticationFilter` (configured in `SecurityConfig.java`) intercepts incoming requests.
+*   **Token Validation:** The filter extracts the JWT and uses `JwtTokenProvider.validateToken()` to verify its signature, expiration, and integrity.
+*   **Role Extraction:** Upon successful validation, `JwtTokenProvider.getRoleFromToken()` extracts the user's role(s) from the JWT's claims.
+*   **Security Context:** A Spring Security `Authentication` object, populated with the user's identity and extracted roles, is created and set in the `SecurityContextHolder`.
+*   **Access Control:** `@PreAuthorize` annotations, strategically placed on controller methods (e.g., in `UserController`), then leverage the information in the `SecurityContextHolder` to make fine-grained access control decisions, ensuring that only users with the necessary roles can perform specific actions.
+
+#### 2.4.3. Soundness Assessment
+
+*   **Strengths:**
+    *   **Stateless JWTs:** The system effectively utilizes JWTs for stateless authentication and authorization, which is crucial for scalability and resilience in a microservices environment.
+    *   **Clear Role-Based Authorization:** A well-defined set of roles (`ROLE_CUSTOMER`, `ROLE_ADMIN`, etc.) is used to enforce access policies, aligning with the principle of least privilege.
+    *   **Seamless OAuth2 Integration:** The integration with OAuth2 providers (Google, Facebook) provides a convenient and secure way for users to authenticate.
+    *   **Secure Password Hashing:** Passwords for local accounts are securely stored using `BCryptPasswordEncoder`.
+    *   **Fine-Grained `@PreAuthorize` Rules:** The use of `@PreAuthorize` annotations allows for expressive and precise control over API endpoint access.
+    *   **Good Separation of Concerns:** Responsibilities are clearly divided among `AuthenticationService` (core login/registration), `JwtTokenProvider` (JWT specifics), and `CustomOAuth2UserService` (OAuth2 user loading).
+
+*   **Potential Future Improvements:**
+    *   **`OAuth2AuthenticationSuccessHandler` Implementation Review:** A detailed review of the `OAuth2AuthenticationSuccessHandler` implementation is crucial to ensure it correctly generates and returns the JWT after OAuth2 login, passing the appropriate roles obtained from the `AppUserDetails`.
+    *   **Multiple Roles in JWT Claim:** The `JwtTokenProvider.generateToken()` method currently accepts a single `String role` parameter, which is then stored as a comma-separated string in the JWT's "role" claim. While `AppUserDetails` correctly parses this into multiple `GrantedAuthority` objects, it is generally considered better practice to store multiple roles as a list or array directly within the JWT claim. This would enhance clarity and potentially simplify parsing in other contexts.
+    *   **Dynamic Role Assignment for OAuth2 Users:** When a new user registers via OAuth2, they are currently assigned a default `ROLE_CUSTOMER`. Implementing a mechanism for administrators to dynamically assign additional roles (e.g., `ROLE_PRODUCT_MANAGER`, `ROLE_ORDER_MANAGER`) to these users post-registration would provide greater flexibility and administrative control.
+
 ## 3. Securing API Endpoints: A Comprehensive Map
 
 The following is a detailed breakdown of how RBAC would be applied across all existing and proposed API endpoints.
