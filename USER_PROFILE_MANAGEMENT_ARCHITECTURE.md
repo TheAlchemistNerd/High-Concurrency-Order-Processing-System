@@ -71,10 +71,33 @@ Handling user data necessitates a strong focus on security and regulatory compli
 
 *   **Password Management**: The system must continue to use a strong, adaptive hashing algorithm like **BCrypt** for all user passwords, as is the current practice with `PasswordEncoderService`.
 
-*   **Regulatory Compliance (GDPR/CCPA)**: The architecture must support key data privacy rights, including:
-    *   **The Right to Access**: Fulfilled by the `GET /api/users/me` endpoint.
-    *   **The Right to Rectification**: Fulfilled by the `PUT /api/users/me` endpoint.
-    *   **The Right to Erasure (to be Forgotten)**: Fulfilled by the `DELETE /api/users/me` endpoint, which must trigger a workflow to scrub the user's PII from the User Service and anonymize their data in other services (like `OrderService`).
+#### 4.1. Caching Strategies
+
+To enhance performance and user experience, various caching strategies can be applied to user-related data. However, due to the sensitive nature of user profiles, caching must be implemented with careful consideration for security and data freshness.
+
+*   **Client-Side Caching (Browser/Mobile App):**
+    *   **Applicability:** Basic user profile information (e.g., first name, last name, email, profile picture URL) and frequently accessed addresses (e.g., default shipping address) are often cached client-side (in local storage, session storage, or application memory) for logged-in users.
+    *   **Purpose:** Reduces the need for repeated API calls to the `User Service`, leading to faster UI rendering and a more responsive application.
+    *   **Considerations:**
+        *   **Security:** Sensitive data (like full address details, payment tokens) should never be stored unencrypted client-side. Even less sensitive data should be treated with caution.
+        *   **Freshness:** Implement appropriate cache invalidation mechanisms (e.g., based on JWT expiration, explicit API calls to refresh data, or versioning) to ensure the client displays up-to-date information.
+        *   **Storage Limits:** Be mindful of browser storage limits.
+
+*   **CDN Caching (for Profile Pictures):**
+    *   **Applicability:** Profile pictures are static assets and are ideal candidates for caching by a Content Delivery Network (CDN). The `User Service` would store the URL to the image, and the CDN would serve the image content.
+    *   **Purpose:** Significantly reduces latency for image loading, especially for geographically dispersed users, and offloads traffic from the `User Service`.
+    *   **Considerations:**
+        *   **Cache Invalidation:** When a user updates their profile picture, the CDN cache for the old image URL must be invalidated.
+        *   **Security:** Ensure CDN access is properly secured and that image URLs are not easily guessable if they contain sensitive identifiers.
+
+*   **API Gateway/BFF Caching:**
+    *   **Applicability:** Less common for highly personalized and dynamic user profile data. However, an API Gateway or Backend For Frontend (BFF) might cache certain aggregated data that is less sensitive and frequently requested across multiple users (e.g., a list of popular users, if such a feature existed).
+    *   **Purpose:** Reduces load on backend services and improves response times for common queries.
+    *   **Considerations:**
+        *   **Data Sensitivity:** Avoid caching PII at this layer unless absolutely necessary and with robust encryption and access controls.
+        *   **Cache Key Design:** Cache keys must be carefully designed to avoid data leakage between users.
+
+In summary, while user profile data is inherently dynamic and often sensitive, strategic caching at the client-side and leveraging CDNs for static assets like profile pictures can significantly improve performance without compromising security, provided appropriate measures are in place.
 
 ## Conclusion
 
