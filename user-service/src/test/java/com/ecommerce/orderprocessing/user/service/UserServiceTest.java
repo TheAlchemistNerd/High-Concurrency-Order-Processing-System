@@ -4,7 +4,6 @@ import com.ecommerce.orderprocessing.common.exception.ResourceNotFoundException;
 import com.ecommerce.orderprocessing.user.domain.entity.Address;
 import com.ecommerce.orderprocessing.user.domain.entity.User;
 import com.ecommerce.orderprocessing.user.dto.AddressRequest;
-import com.ecommerce.orderprocessing.user.dto.AddressResponse;
 import com.ecommerce.orderprocessing.user.dto.ChangePasswordRequest;
 import com.ecommerce.orderprocessing.user.dto.UserProfileUpdateRequest;
 import com.ecommerce.orderprocessing.user.repository.AddressRepository;
@@ -18,9 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
