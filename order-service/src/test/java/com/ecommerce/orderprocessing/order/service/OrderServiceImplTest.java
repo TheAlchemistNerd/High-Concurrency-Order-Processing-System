@@ -401,7 +401,7 @@ class OrderServiceImplTest {
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
-        when(inventoryService.restoreInventory(1L, 2)).thenReturn(CompletableFuture.completedFuture(null));
+        when(inventoryService.releaseInventory(1L, 2)).thenReturn(CompletableFuture.completedFuture(null));
         when(userService.getUserProfile(1L)).thenReturn(CompletableFuture.completedFuture(userResponse));
         when(productCatalogService.getProductById(1L)).thenReturn(CompletableFuture.completedFuture(productResponse));
 

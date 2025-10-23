@@ -33,7 +33,7 @@ class InventoryRepositoryTest extends AbstractContainerBaseTest {
         // Then
         assertThat(foundInventory).isPresent();
         assertThat(foundInventory.get().getProductId()).isEqualTo(productId);
-        assertThat(foundInventory.get().getQuantity()).isEqualTo(100);
+        assertThat(foundInventory.get().getStockQuantity()).isEqualTo(100);
     }
 
     @Test
