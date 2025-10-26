@@ -40,3 +40,4 @@ setup_db.sh
 
 # Log files
 /app/logs/
+commit_message.txt
