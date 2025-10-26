@@ -27,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -53,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public CompletableFuture<OrderResponse> createOrder(CreateOrderRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             var order = new Order();
@@ -61,12 +64,8 @@ public class OrderServiceImpl implements OrderService {
 
             var savedOrder = orderRepository.save(order);
 
-            List<CompletableFuture<OrderItem>> futures = request.orderItems().stream()
-                    .map(itemRequest -> createOrderItem(itemRequest, savedOrder))
-                    .collect(Collectors.toList());
-
-            List<OrderItem> orderItems = futures.stream()
-                    .map(CompletableFuture::join)
+            List<OrderItem> orderItems = request.orderItems().stream()
+                    .map(itemRequest -> createOrderItem(itemRequest, savedOrder).join())
                     .collect(Collectors.toList());
 
             BigDecimal totalAmount = orderItems.stream()
@@ -103,7 +102,11 @@ public class OrderServiceImpl implements OrderService {
                     orderPage.getNumber(),
                     orderPage.getSize(),
                     orderPage.getTotalElements(),
-                    orderPage.getTotalPages()
+                    orderPage.getTotalPages(),
+                    orderPage.isFirst(),
+                    orderPage.isLast(),
+                    orderPage.hasNext(),
+                    orderPage.hasPrevious()
             );
         }, virtualThreadExecutor);
     }
@@ -164,6 +167,10 @@ public class OrderServiceImpl implements OrderService {
                 throw new InvalidOrderStateException(order.getStatus().toString(), "CANCELLED");
             }
 
+            if (order.getStatus() == OrderStatus.PAID) {
+                paymentService.refundPayment(order.getPaymentId(), order.getTotalAmount()).join();
+            }
+
             if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PAID) {
                 order.getOrderItems().forEach(orderItem -> {
                     inventoryService.releaseInventory(orderItem.getProductId(), orderItem.getQuantity());
@@ -192,7 +199,11 @@ public class OrderServiceImpl implements OrderService {
                     orderPage.getNumber(),
                     orderPage.getSize(),
                     orderPage.getTotalElements(),
-                    orderPage.getTotalPages()
+                    orderPage.getTotalPages(),
+                    orderPage.isFirst(),
+                    orderPage.isLast(),
+                    orderPage.hasNext(),
+                    orderPage.hasPrevious()
             );
         }, virtualThreadExecutor);
     }

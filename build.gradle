@@ -63,8 +63,9 @@ project(':product-service') {
     dependencies {
         implementation project(':common')
         testImplementation testFixtures(project(':common'))
-        api 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     }
 }
 
@@ -77,6 +78,7 @@ project(':inventory-service') {
         implementation 'org.springframework.data:spring-data-commons'
         implementation 'org.slf4j:slf4j-api'
         implementation 'org.springframework:spring-tx'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
     }
 }
 
@@ -90,6 +92,7 @@ project(':order-service') {
         implementation project(':payment-service')
         implementation 'org.springframework.boot:spring-boot-starter-validation'
         implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     }
 }
 
@@ -99,6 +102,7 @@ project(':payment-service') {
         testImplementation testFixtures(project(':common'))
         implementation 'org.springframework.boot:spring-boot-starter-webflux'
         implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'com.stripe:stripe-java:24.18.0'
     }
 }
 
@@ -109,6 +113,7 @@ project(':shopping-cart-service') {
         implementation project(':user-service')
         implementation project(':product-service')
         implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     }
 }
 

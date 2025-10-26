@@ -1,6 +1,5 @@
 package com.ecommerce.orderprocessing.shoppingcart.service;
 
-import com.ecommerce.orderprocessing.product.Product;
 import com.ecommerce.orderprocessing.shoppingcart.domain.CartItem;
 import com.ecommerce.orderprocessing.shoppingcart.domain.ShoppingCart;
 import com.ecommerce.orderprocessing.shoppingcart.dto.AddCartItemRequest;

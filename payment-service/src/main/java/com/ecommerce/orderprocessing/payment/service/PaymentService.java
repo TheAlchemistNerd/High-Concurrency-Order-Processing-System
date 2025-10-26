@@ -6,9 +6,11 @@ import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
 import com.ecommerce.orderprocessing.payment.exception.PaymentProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -17,8 +19,9 @@ public class PaymentService {
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
     private final PaymentGatewayClient paymentGatewayClient;
 
-    public PaymentService(PaymentGatewayClient paymentGatewayClient) {
-        this.paymentGatewayClient = paymentGatewayClient;
+    public PaymentService(Map<String, PaymentGatewayClient> paymentGatewayClients,
+                          @Value("${app.payment.provider:mock}") String paymentProvider) {
+        this.paymentGatewayClient = paymentGatewayClients.get(paymentProvider);
     }
 
     public CompletableFuture<PaymentResponse> processPayment(PaymentRequest paymentRequest) {
