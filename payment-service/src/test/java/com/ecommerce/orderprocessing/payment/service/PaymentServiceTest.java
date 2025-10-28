@@ -1,6 +1,6 @@
 package com.ecommerce.orderprocessing.payment.service;
 
-import com.ecommerce.orderprocessing.payment.PaymentGatewayClient;
+import com.ecommerce.orderprocessing.payment.client.PaymentGatewayClient;
 import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
 import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
 import com.ecommerce.orderprocessing.payment.exception.PaymentProcessingException;

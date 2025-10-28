@@ -11,13 +11,12 @@
   - [Concurrency Model: Virtual Threads and CompletableFuture](#concurrency-model-virtual-threads-and-completablefuture)
   - [Consistency Model: Transactions and Saga Pattern](#consistency-model-transactions-and-saga-pattern)
 - [API Reference](#api-reference)
-  - [Authentication Service (`/api/auth`)](#authentication-service-apiauth)
-  - [User Profile Service (`/api/users`)](#user-profile-service-apiusers)
-  - [Product Catalog Service (`/api/products`)](#product-catalog-service-apiproducts)
-  - [Inventory Service (`/api/inventory`)](#inventory-service-apiinventory)
-  - [Shopping Cart Service (`/api/cart`)](#shopping-cart-service-apicart)
-  - [Order Service (`/api/orders`)](#order-service-apiorders)
-  - [Payment Service (`/api/payments`)](#payment-service-apipayments)
+  - [Authentication Service](/user-service/README.md#authentication-service-api-endpoints)
+  - [User Profile Service](/user-service/README.md)
+  - [Product Catalog Service](/product-service/README.md)
+  - [Inventory Service](/inventory-service/README.md)
+  - [Shopping Cart Service](/shopping-cart-service/README.md)
+  - [Order Service](/order-service/README.md)
 - [Configuration](#configuration)
 - [Security: Authentication and Authorization](#security-authentication-and-authorization)
 - [Tuning and Performance](#tuning-and-performance)
@@ -189,13 +188,7 @@ The following is a summary of the main API endpoints exposed by the application.
 | `PUT`    | `/api/orders/{orderId}/cancel` | Cancels an order.                         | `ADMIN`, `ORDER_MANAGER`, or owner   |
 | `GET`    | `/api/orders`                  | Gets a list of all orders.                | `ADMIN`, `ORDER_MANAGER`, `SUPPORT`  |
 
-### Payment Service (`/api/payments`)
 
-| Method | Endpoint                      | Description                   | Roles Permitted |
-|--------|-------------------------------|-------------------------------|-----------------|
-| `POST` | `/api/payments`               | Processes a new payment.      | `CUSTOMER`      |
-| `POST` | `/api/payments/{id}/refunds`  | Refunds a payment.            | `ORDER_MANAGER` |
-| `GET`  | `/api/payments/{id}`          | Gets the status of a payment. | `CUSTOMER`      |
 
 ## Configuration
 
@@ -268,18 +261,24 @@ The application will be available at `http://localhost:8080`. The Swagger UI for
 
 ## Architectural Vision Documents (Concatenated)
 
-### Architectural Vision: Enhanced Order Management and Anonymous Cart Functionality
+### [Architectural Vision: Enhanced Order Management and Anonymous Cart Functionality](/ORDER_AND_CART_ARCHITECTURE.md)
 
-This document outlines critical architectural enhancements for the e-commerce platform, focusing on two key areas: implementing a robust order management system with clear distinctions between pre-shipment and post-shipment cancellations, and introducing a scalable solution for anonymous shopping carts. These improvements are designed to elevate the user experience, streamline operational workflows, and support the platform's high-concurrency, microservices-oriented architecture. By addressing these aspects, we aim to reduce friction for users, improve conversion rates, and provide greater control and flexibility in managing the order lifecycle.
+### [Architectural Vision: Decoupling with a Product Catalog Service](/PRODUCT_CATALOG_SERVICE_ARCHITECTURE.md)
 
-### Architectural Vision: Decoupling with a Product Catalog Service
+### [Architectural Vision: Implementing Role-Based Access Control (RBAC)](/RBAC_ARCHITECTURE.md)
 
-This document outlines a strategic architectural evolution for the e-commerce platform, transitioning from a monolithic structure towards a more scalable and maintainable microservices-oriented design. The cornerstone of this proposal is the introduction of a dedicated **Product Catalog Service**. This initiative aims to address the challenges of high coupling observed in the current architecture, where multiple services are directly dependent on shared data repositories, thereby hindering independent development, scaling, and maintenance.
+### [Architectural Vision: Advanced User Profile Management](/USER_PROFILE_MANAGEMENT_ARCHITECTURE.md)
 
-### Architectural Vision: Implementing Role-Based Access Control (RBAC)
+### [Architectural Vision: Payment Service](/payment-service/README.md)
 
-As the e-commerce platform evolves from a monolith into a suite of specialized microservices—such as the proposed `Product Catalog Service` and `User Profile Service`—the need for a granular and robust security model becomes paramount. A simple authenticated-vs-unauthenticated paradigm is no longer sufficient. This document outlines a vision for implementing a comprehensive Role-Based Access Control (RBAC) system. This system will ensure that users and system operators only have access to the data and operations necessary for their designated functions, adhering to the principle of least privilege.
+### [User Service Documentation](/user-service/README.md)
 
-### Architectural Vision: Advanced User Profile Management
+### [Product Service Documentation](/product-service/README.md)
 
-A rich and seamless user profile management system is a critical component of any modern e-commerce platform. It enhances the customer experience, builds trust, and provides valuable data for personalization. The current system implements basic customer registration and authentication, but there is a significant opportunity to expand this into a full-fledged, feature-rich user profile system. This document outlines the architectural vision for creating a dedicated **User Profile Service**, evolving the existing `Customer` entity into a comprehensive domain.
+### [Inventory Service Documentation](/inventory-service/README.md)
+
+### [Shopping Cart Service Documentation](/shopping-cart-service/README.md)
+
+### [Order Service Documentation](/order-service/README.md)
+
+### [Design Decisions: Edge Cases and Administrative Actions](/DESIGN_DECISIONS.md)

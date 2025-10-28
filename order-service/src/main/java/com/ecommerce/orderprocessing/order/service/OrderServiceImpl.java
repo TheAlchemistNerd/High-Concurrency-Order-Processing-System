@@ -9,6 +9,8 @@ import com.ecommerce.orderprocessing.order.repository.OrderItemRepository;
 import com.ecommerce.orderprocessing.order.repository.OrderRepository;
 import com.ecommerce.orderprocessing.payment.dto.PaymentRequest;
 import com.ecommerce.orderprocessing.common.dto.PagedResponse;
+import com.ecommerce.orderprocessing.payment.dto.PaymentResponse;
+import com.ecommerce.orderprocessing.payment.dto.RefundRequest;
 import com.ecommerce.orderprocessing.common.exception.ResourceNotFoundException;
 import com.ecommerce.orderprocessing.product.service.ProductCatalogService;
 import com.ecommerce.orderprocessing.product.ProductResponse;
@@ -168,7 +170,14 @@ public class OrderServiceImpl implements OrderService {
             }
 
             if (order.getStatus() == OrderStatus.PAID) {
-                paymentService.refundPayment(order.getPaymentId(), order.getTotalAmount()).join();
+                // Construct RefundRequest with necessary details
+                RefundRequest refundRequest = new RefundRequest(
+                        order.getPaymentId(),
+                        order.getTotalAmount(),
+                        reason, // Use the cancellation reason as refund reason
+                        UUID.randomUUID().toString() // Generate a unique idempotency key
+                );
+                paymentService.refundPayment(refundRequest).join();
             }
 
             if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.PAID) {
