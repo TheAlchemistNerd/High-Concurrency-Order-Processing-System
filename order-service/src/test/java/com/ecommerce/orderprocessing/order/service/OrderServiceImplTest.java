@@ -21,6 +21,8 @@ import com.ecommerce.orderprocessing.inventory.service.InventoryService;
 import com.ecommerce.orderprocessing.payment.service.PaymentService;
 import com.ecommerce.orderprocessing.user.service.UserService;
 import com.ecommerce.orderprocessing.user.dto.UserResponse;
+import com.ecommerce.orderprocessing.payment.dto.RefundRequest;
+import com.ecommerce.orderprocessing.payment.dto.RefundResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -402,6 +404,7 @@ class OrderServiceImplTest {
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(inventoryService.releaseInventory(1L, 2)).thenReturn(CompletableFuture.completedFuture(null));
+        when(paymentService.refundPayment(any(RefundRequest.class))).thenReturn(CompletableFuture.completedFuture(new RefundResponse("refund-1", order.getPaymentId(), "SUCCESS", order.getTotalAmount(), "USD", LocalDateTime.now(), "Refund successful")));
         when(userService.getUserProfile(1L)).thenReturn(CompletableFuture.completedFuture(userResponse));
         when(productCatalogService.getProductById(1L)).thenReturn(CompletableFuture.completedFuture(productResponse));
 
