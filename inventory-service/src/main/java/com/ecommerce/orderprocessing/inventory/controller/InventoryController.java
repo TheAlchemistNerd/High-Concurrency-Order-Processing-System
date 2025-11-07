@@ -2,6 +2,7 @@ package com.ecommerce.orderprocessing.inventory.controller;
 
 import com.ecommerce.orderprocessing.inventory.dto.InventoryResponse;
 import com.ecommerce.orderprocessing.inventory.service.InventoryService;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +13,11 @@ import java.util.concurrent.CompletableFuture;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final InventoryModelAssembler assembler;
 
-    public InventoryController(InventoryService inventoryService) {
+    public InventoryController(InventoryService inventoryService, InventoryModelAssembler assembler) {
         this.inventoryService = inventoryService;
+        this.assembler = assembler;
     }
 
     @GetMapping("/products/{productId}/check")
@@ -47,7 +50,8 @@ public class InventoryController {
     }
 
     @GetMapping("/products/{productId}")
-    public CompletableFuture<InventoryResponse> getInventoryByProductId(@PathVariable Long productId) {
-        return inventoryService.getInventoryByProductId(productId);
+    public CompletableFuture<EntityModel<InventoryResponse>> getInventoryByProductId(@PathVariable Long productId) {
+        return inventoryService.getInventoryByProductId(productId)
+                .thenApply(assembler::toModel);
     }
 }

@@ -66,6 +66,7 @@ project(':product-service') {
         implementation 'org.springframework.boot:spring-boot-starter-web'
         implementation 'org.springframework.boot:spring-boot-starter-security'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     }
 }
 
@@ -79,6 +80,7 @@ project(':inventory-service') {
         implementation 'org.slf4j:slf4j-api'
         implementation 'org.springframework:spring-tx'
         implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     }
 }
 
@@ -93,6 +95,7 @@ project(':order-service') {
         implementation 'org.springframework.boot:spring-boot-starter-validation'
         implementation 'org.springframework.boot:spring-boot-starter-web'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     }
 }
 
@@ -114,6 +117,7 @@ project(':shopping-cart-service') {
         implementation project(':product-service')
         implementation 'org.springframework.boot:spring-boot-starter-web'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-hateoas'
     }
 }
 

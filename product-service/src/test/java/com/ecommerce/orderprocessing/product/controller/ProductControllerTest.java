@@ -1,5 +1,7 @@
 package com.ecommerce.orderprocessing.product.controller;
 
+import com.ecommerce.orderprocessing.inventory.controller.InventoryController;
+import com.ecommerce.orderprocessing.inventory.service.InventoryService;
 import com.ecommerce.orderprocessing.product.ProductResponse;
 import com.ecommerce.orderprocessing.product.dto.ProductRequest;
 import com.ecommerce.orderprocessing.product.service.ProductCatalogService;
@@ -10,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,22 +28,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProductController.class)
+@Import({ProductModelAssembler.class, InventoryController.class})
 class ProductControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockBean
     private ProductCatalogService productCatalogService;
+
+    @MockBean
+    private InventoryService inventoryService; // Required for InventoryController link building
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -51,7 +59,11 @@ class ProductControllerTest {
     void setUp() {
         productResponse1 = new ProductResponse(1L, "Laptop", "Powerful laptop", BigDecimal.valueOf(1200.00), true, LocalDateTime.now(), LocalDateTime.now());
         productResponse2 = new ProductResponse(2L, "Mouse", "Wireless mouse", BigDecimal.valueOf(25.00), true, LocalDateTime.now(), LocalDateTime.now());
+        // Default to no authentication
+        SecurityContextHolder.clearContext();
+    }
 
+    private void setupAsAdmin() {
         AppUserDetails adminUserDetails = new AppUserDetails(1L, "admin@example.com", "password", "ADMIN", true, Collections.emptyMap());
         Authentication adminAuthentication = new UsernamePasswordAuthenticationToken(
                 adminUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"))
@@ -59,31 +71,47 @@ class ProductControllerTest {
         SecurityContextHolder.getContext().setAuthentication(adminAuthentication);
     }
 
-    @Test
-    void getProductById_shouldReturnProductResponse() throws Exception {
-        when(productCatalogService.getProductById(anyLong())).thenReturn(CompletableFuture.completedFuture(productResponse1));
-
-        mockMvc.perform(get("/api/products/{productId}", 1L)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath(".id").value(productResponse1.id()))
-                .andExpect(jsonPath(".name").value(productResponse1.name()));
+    private void setupAsCustomer() {
+        AppUserDetails customerUserDetails = new AppUserDetails(2L, "customer@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
+        Authentication customerAuthentication = new UsernamePasswordAuthenticationToken(
+                customerUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(customerAuthentication);
     }
 
     @Test
-    void getAllProducts_shouldReturnListOfProductResponses() throws Exception {
+    void getProductById_shouldReturnProductWithLinks() throws Exception {
+        when(productCatalogService.getProductById(1L)).thenReturn(CompletableFuture.completedFuture(productResponse1));
+
+        mockMvc.perform(get("/api/products/{productId}", 1L)
+                        .accept(MediaTypes.HAL_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(productResponse1.id().intValue())))
+                .andExpect(jsonPath("$.name", is(productResponse1.name())))
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/products/1")))
+                .andExpect(jsonPath("$._links.products.href", endsWith("/api/products")))
+                .andExpect(jsonPath("$._links.inventory.href", endsWith("/api/inventory/products/1")));
+    }
+
+    @Test
+    void getAllProducts_shouldReturnCollectionOfProductsWithLinks() throws Exception {
         List<ProductResponse> productResponses = Arrays.asList(productResponse1, productResponse2);
         when(productCatalogService.getAllProducts()).thenReturn(CompletableFuture.completedFuture(productResponses));
 
         mockMvc.perform(get("/api/products")
-                        .accept(MediaType.APPLICATION_JSON))
+                        .accept(MediaTypes.HAL_JSON_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(productResponses.size()))
-                .andExpect(jsonPath("$[0].id").value(productResponse1.id()))
-                .andExpect(jsonPath("$[1].id").value(productResponse2.id()));
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/products")))
+                .andExpect(jsonPath("$._embedded.productResponseList.length()", is(2)))
+                .andExpect(jsonPath("$._embedded.productResponseList[0].id", is(1)))
+                .andExpect(jsonPath("$._embedded.productResponseList[0]._links.self.href", endsWith("/api/products/1")))
+                .andExpect(jsonPath("$._embedded.productResponseList[1].id", is(2)))
+                .andExpect(jsonPath("$._embedded.productResponseList[1]._links.self.href", endsWith("/api/products/2")));
     }
 
-    void createProduct_withAdminRole_shouldReturnCreatedProduct() throws Exception {
+    @Test
+    void createProduct_withAdminRole_shouldReturnCreatedProductWithLinks() throws Exception {
+        setupAsAdmin();
         ProductRequest productRequest = new ProductRequest("Keyboard", "Mechanical keyboard", BigDecimal.valueOf(150.00));
         ProductResponse createdProduct = new ProductResponse(3L, "Keyboard", "Mechanical keyboard", BigDecimal.valueOf(150.00), true, LocalDateTime.now(), LocalDateTime.now());
 
@@ -93,18 +121,15 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(productRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath(".id").value(createdProduct.id()))
-                .andExpect(jsonPath(".name").value(createdProduct.name()));
+                .andExpect(header().string("Location", endsWith("/api/products/3")))
+                .andExpect(jsonPath("$.id", is(createdProduct.id().intValue())))
+                .andExpect(jsonPath("$.name", is(createdProduct.name())))
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/products/3")));
     }
 
     @Test
     void createProduct_withCustomerRole_shouldReturnForbidden() throws Exception {
-        AppUserDetails customerUserDetails = new AppUserDetails(2L, "customer@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
-        Authentication customerAuthentication = new UsernamePasswordAuthenticationToken(
-                customerUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
-        );
-        SecurityContextHolder.getContext().setAuthentication(customerAuthentication);
-
+        setupAsCustomer();
         ProductRequest productRequest = new ProductRequest("Keyboard", "Mechanical keyboard", BigDecimal.valueOf(150.00));
 
         mockMvc.perform(post("/api/products")
@@ -115,7 +140,6 @@ class ProductControllerTest {
 
     @Test
     void createProduct_unauthenticated_shouldReturnUnauthorized() throws Exception {
-        SecurityContextHolder.clearContext();
         ProductRequest productRequest = new ProductRequest("Keyboard", "Mechanical keyboard", BigDecimal.valueOf(150.00));
 
         mockMvc.perform(post("/api/products")
@@ -125,7 +149,8 @@ class ProductControllerTest {
     }
 
     @Test
-    void updateProduct_withAdminRole_shouldReturnUpdatedProduct() throws Exception {
+    void updateProduct_withAdminRole_shouldReturnUpdatedProductWithLinks() throws Exception {
+        setupAsAdmin();
         ProductRequest productRequest = new ProductRequest("Laptop", "Even more powerful laptop", BigDecimal.valueOf(1500.00));
         ProductResponse updatedProduct = new ProductResponse(1L, "Laptop", "Even more powerful laptop", BigDecimal.valueOf(1500.00), true, LocalDateTime.now(), LocalDateTime.now());
 
@@ -135,18 +160,14 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(productRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath(".id").value(updatedProduct.id()))
-                .andExpect(jsonPath(".description").value(updatedProduct.description()));
+                .andExpect(jsonPath("$.id", is(updatedProduct.id().intValue())))
+                .andExpect(jsonPath("$.description", is(updatedProduct.description())))
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/products/1")));
     }
 
     @Test
     void updateProduct_withCustomerRole_shouldReturnForbidden() throws Exception {
-        AppUserDetails customerUserDetails = new AppUserDetails(2L, "customer@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
-        Authentication customerAuthentication = new UsernamePasswordAuthenticationToken(
-                customerUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
-        );
-        SecurityContextHolder.getContext().setAuthentication(customerAuthentication);
-
+        setupAsCustomer();
         ProductRequest productRequest = new ProductRequest("Laptop", "Even more powerful laptop", BigDecimal.valueOf(1500.00));
 
         mockMvc.perform(put("/api/products/{productId}", 1L)
@@ -157,6 +178,7 @@ class ProductControllerTest {
 
     @Test
     void deleteProduct_withAdminRole_shouldReturnNoContent() throws Exception {
+        setupAsAdmin();
         when(productCatalogService.deleteProduct(anyLong())).thenReturn(CompletableFuture.completedFuture(null));
 
         mockMvc.perform(delete("/api/products/{productId}", 1L))
@@ -165,14 +187,8 @@ class ProductControllerTest {
 
     @Test
     void deleteProduct_withCustomerRole_shouldReturnForbidden() throws Exception {
-        AppUserDetails customerUserDetails = new AppUserDetails(2L, "customer@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
-        Authentication customerAuthentication = new UsernamePasswordAuthenticationToken(
-                customerUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
-        );
-        SecurityContextHolder.getContext().setAuthentication(customerAuthentication);
-
+        setupAsCustomer();
         mockMvc.perform(delete("/api/products/{productId}", 1L))
                 .andExpect(status().isForbidden());
     }
-}
 }

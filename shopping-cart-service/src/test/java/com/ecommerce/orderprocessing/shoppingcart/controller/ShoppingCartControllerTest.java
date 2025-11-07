@@ -1,18 +1,26 @@
 package com.ecommerce.orderprocessing.shoppingcart.controller;
 
+import com.ecommerce.orderprocessing.order.controller.OrderController;
+import com.ecommerce.orderprocessing.order.service.OrderService;
+import com.ecommerce.orderprocessing.product.controller.ProductController;
+import com.ecommerce.orderprocessing.product.service.ProductCatalogService;
 import com.ecommerce.orderprocessing.shoppingcart.dto.AddCartItemRequest;
+import com.ecommerce.orderprocessing.shoppingcart.dto.CartItemResponse;
 import com.ecommerce.orderprocessing.shoppingcart.dto.ShoppingCartResponse;
 import com.ecommerce.orderprocessing.shoppingcart.dto.UpdateCartItemRequest;
 import com.ecommerce.orderprocessing.shoppingcart.service.ShoppingCartService;
 import com.ecommerce.orderprocessing.user.security.AppUserDetails;
+import com.ecommerce.orderprocessing.user.security.JwtAuthenticationEntryPoint;
+import com.ecommerce.orderprocessing.user.security.JwtAuthenticationFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import com.ecommerce.orderprocessing.user.security.JwtAuthenticationEntryPoint;
-import com.ecommerce.orderprocessing.user.security.JwtAuthenticationFilter;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,131 +32,146 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(ShoppingCartController.class)
+@Import({ShoppingCartModelAssembler.class, ProductController.class, OrderController.class})
 class ShoppingCartControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockBean
     private ShoppingCartService shoppingCartService;
 
-    @MockitoBean
+    @MockBean
+    private ProductCatalogService productCatalogService; // For ProductController links
+
+    @MockBean
+    private OrderService orderService; // For OrderController links
+
+    @MockBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @MockitoBean
+    @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    private AppUserDetails appUserDetails;
+    private final Long currentUserId = 1L;
+    private final Long otherUserId = 2L;
 
     @BeforeEach
     void setUp() {
-        appUserDetails = new AppUserDetails(1L, "john.doe@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
+        // Default to being authenticated as the CUSTOMER with ID 1
+        setupAsCustomer(currentUserId);
+    }
 
-        // Set up security context for authenticated user
+    private void setupAsCustomer(Long customerId) {
+        AppUserDetails userDetails = new AppUserDetails(customerId, "customer@example.com", "password", "CUSTOMER", true, Collections.emptyMap());
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                appUserDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
+                userDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CUSTOMER"))
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
-    void getShoppingCart_shouldReturnShoppingCart() throws Exception {
-        // Given
-        Long customerId = 1L;
-        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, customerId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
+    void getShoppingCart_forOwnCart_shouldReturnCartWithLinks() throws Exception {
+        CartItemResponse item = new CartItemResponse(101L, "Test Product", 2, BigDecimal.TEN, BigDecimal.valueOf(20));
+        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, currentUserId, "Test Customer", "test@example.com", List.of(item), BigDecimal.valueOf(20), LocalDateTime.now(), LocalDateTime.now());
 
-        when(shoppingCartService.getShoppingCart(customerId)).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
+        when(shoppingCartService.getShoppingCart(currentUserId)).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
 
-        // When & Then
-        mockMvc.perform(get("/api/cart/{customerId}", customerId))
-                .andExpect(request().asyncStarted())
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/cart/{customerId}", currentUserId).accept(MediaTypes.HAL_JSON_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.customerId", is(currentUserId.intValue())))
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/cart/" + currentUserId)))
+                .andExpect(jsonPath("$._links.checkout.href", endsWith("/api/orders")))
+                .andExpect(jsonPath("$._links.clear.href", endsWith("/api/cart/" + currentUserId)))
+                .andExpect(jsonPath("$._links.item-101-product.href", endsWith("/api/products/101")));
+    }
+
+    @Test
+    void getShoppingCart_forOtherUser_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/api/cart/{customerId}", otherUserId).accept(MediaTypes.HAL_JSON_VALUE))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     void getShoppingCart_unauthenticated_shouldReturnUnauthorized() throws Exception {
         SecurityContextHolder.clearContext();
-        mockMvc.perform(get("/api/cart/{customerId}", 1L))
+        mockMvc.perform(get("/api/cart/{customerId}", currentUserId).accept(MediaTypes.HAL_JSON_VALUE))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void getShoppingCart_differentUser_shouldReturnForbidden() throws Exception {
-        mockMvc.perform(get("/api/cart/{customerId}", 2L))
+    void addItemToCart_forOwnCart_shouldReturnUpdatedCart() throws Exception {
+        AddCartItemRequest request = new AddCartItemRequest(101L, 2);
+        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, currentUserId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
+        when(shoppingCartService.addItemToCart(eq(currentUserId), any(AddCartItemRequest.class))).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
+
+        mockMvc.perform(post("/api/cart/{customerId}/items", currentUserId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/cart/" + currentUserId)));
+    }
+
+    @Test
+    void addItemToCart_forOtherUser_shouldReturnForbidden() throws Exception {
+        AddCartItemRequest request = new AddCartItemRequest(101L, 2);
+        mockMvc.perform(post("/api/cart/{customerId}/items", otherUserId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void addItemToCart_shouldReturnUpdatedCart() throws Exception {
-        // Given
-        Long customerId = 1L;
-        AddCartItemRequest request = new AddCartItemRequest(1L, 2);
-        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, customerId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
-
-        when(shoppingCartService.addItemToCart(eq(customerId), any(AddCartItemRequest.class))).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
-
-        // When & Then
-        mockMvc.perform(post("/api/cart/{customerId}/items", customerId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"productId\": 1, \"quantity\": 2 }"))
-                .andExpect(request().asyncStarted())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void updateItemQuantity_shouldReturnUpdatedCart() throws Exception {
-        // Given
-        Long customerId = 1L;
-        Long productId = 1L;
+    void updateItemQuantity_forOwnCart_shouldReturnUpdatedCart() throws Exception {
         UpdateCartItemRequest request = new UpdateCartItemRequest(3);
-        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, customerId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
+        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, currentUserId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
+        when(shoppingCartService.updateItemQuantity(eq(currentUserId), eq(101L), any(UpdateCartItemRequest.class))).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
 
-        when(shoppingCartService.updateItemQuantity(eq(customerId), eq(productId), any(UpdateCartItemRequest.class))).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
+        mockMvc.perform(put("/api/cart/{customerId}/items/{productId}", currentUserId, 101L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/cart/" + currentUserId)));
+    }
 
-        // When & Then
-        mockMvc.perform(put("/api/cart/{customerId}/items/{productId}", customerId, productId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"quantity\": 3 }"))
-                .andExpect(request().asyncStarted())
+    @Test
+    void removeItemFromCart_forOwnCart_shouldReturnUpdatedCart() throws Exception {
+        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, currentUserId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
+        when(shoppingCartService.removeItemFromCart(currentUserId, 101L)).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
+
+        mockMvc.perform(delete("/api/cart/{customerId}/items/{productId}", currentUserId, 101L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._links.self.href", endsWith("/api/cart/" + currentUserId)));
+    }
+
+    @Test
+    void clearShoppingCart_forOwnCart_shouldReturnOk() throws Exception {
+        when(shoppingCartService.clearShoppingCart(currentUserId)).thenReturn(CompletableFuture.completedFuture(null));
+
+        mockMvc.perform(delete("/api/cart/{customerId}", currentUserId))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void removeItemFromCart_shouldReturnUpdatedCart() throws Exception {
-        // Given
-        Long customerId = 1L;
-        Long productId = 1L;
-        ShoppingCartResponse shoppingCartResponse = new ShoppingCartResponse(1L, customerId, "Test Customer", "test@example.com", Collections.emptyList(), BigDecimal.ZERO, LocalDateTime.now(), LocalDateTime.now());
-
-        when(shoppingCartService.removeItemFromCart(customerId, productId)).thenReturn(CompletableFuture.completedFuture(shoppingCartResponse));
-
-        // When & Then
-        mockMvc.perform(delete("/api/cart/{customerId}/items/{productId}", customerId, productId))
-                .andExpect(request().asyncStarted())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void clearShoppingCart_shouldReturnNoContent() throws Exception {
-        // Given
-        Long customerId = 1L;
-        when(shoppingCartService.clearShoppingCart(customerId)).thenReturn(CompletableFuture.completedFuture(null));
-
-        // When & Then
-        mockMvc.perform(delete("/api/cart/{customerId}", customerId))
-                .andExpect(request().asyncStarted())
-                .andExpect(status().isOk());
+    void clearShoppingCart_forOtherUser_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(delete("/api/cart/{customerId}", otherUserId))
+                .andExpect(status().isForbidden());
     }
 }

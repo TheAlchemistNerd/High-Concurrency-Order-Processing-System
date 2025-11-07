@@ -1,0 +1,24 @@
+feat: Implement HATEOAS for Core Service Endpoints
+
+This commit introduces HATEOAS (Hypermedia as the Engine of Application State) across the core services to create a more discoverable and self-descriptive API.
+
+Key changes include:
+
+- HATEOAS Implementation:
+  - Added `spring-boot-starter-hateoas` dependency to the relevant service modules.
+  - Implemented `RepresentationModelAssembler` classes for `Product`, `Inventory`, `ShoppingCart`, `Order`, and `Payment` responses.
+  - Updated controllers in `product-service`, `inventory-service`, `shopping-cart-service`, and `order-service` to return `EntityModel`, `CollectionModel`, or `PagedModel` responses with HATEOAS links.
+
+- Type-Safe Cross-Module Links:
+  - Refactored all HATEOAS link generation to use the type-safe `linkTo(methodOn(...))` builder.
+  - This applies to both intra-module and cross-module links, leveraging the modular monolith architecture where all controller classes are on the application classpath.
+  - This approach eliminates hardcoded URIs and makes the API resilient to refactoring.
+
+- Test Suite Overhaul:
+  - Completely rewrote the `MockMvc` tests for the controllers in all four modified services.
+  - The new tests validate the HATEOAS responses, including the `_links` and `_embedded` structures.
+  - Test contexts were updated using `@Import` to support cross-module link building while maintaining a sliced test environment.
+  - Role-based access control continues to be enforced and is covered by the updated tests.
+
+- Documentation:
+  - Added `HATEOAS_IMPLEMENTATION.md` to document the HATEOAS strategy, architectural decisions (immutable DTOs), and the link-building approach for a modular monolith.
