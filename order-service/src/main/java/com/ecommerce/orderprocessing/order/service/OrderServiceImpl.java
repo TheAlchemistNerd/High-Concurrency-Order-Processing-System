@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -114,6 +115,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public CompletableFuture<OrderResponse> updateOrderStatus(Long orderId, UpdateOrderStatusRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             Order order = orderRepository.findById(orderId)
@@ -136,6 +138,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public CompletableFuture<PaymentResponse> processOrderPayment(PaymentRequest paymentRequest) {
         return CompletableFuture.supplyAsync(() -> {
             Order order = orderRepository.findById(paymentRequest.orderId())
@@ -160,6 +163,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public CompletableFuture<OrderResponse> cancelOrder(Long orderId, String reason) {
         return CompletableFuture.supplyAsync(() -> {
             Order order = orderRepository.findById(orderId)

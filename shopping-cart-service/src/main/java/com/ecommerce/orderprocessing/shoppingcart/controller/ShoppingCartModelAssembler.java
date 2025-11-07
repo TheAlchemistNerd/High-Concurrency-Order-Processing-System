@@ -19,7 +19,8 @@ public class ShoppingCartModelAssembler implements RepresentationModelAssembler<
         EntityModel<ShoppingCartResponse> cartModel = EntityModel.of(cart,
                 linkTo(methodOn(ShoppingCartController.class).getShoppingCart(cart.customerId(), null)).withSelfRel(),
                 linkTo(methodOn(OrderController.class).createOrder(null)).withRel("checkout"),
-                linkTo(methodOn(ShoppingCartController.class).clearShoppingCart(cart.customerId(), null)).withRel("clear")
+                linkTo(methodOn(ShoppingCartController.class).clearShoppingCart(cart.customerId(), null)).withRel("clear"),
+                linkTo(methodOn(ShoppingCartController.class).addItemToCart(cart.customerId(), null, null)).withRel("add-item")
         );
 
         for (CartItemResponse item : cart.items()) {

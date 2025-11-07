@@ -34,6 +34,7 @@ public class MockPaymentGatewayClient implements PaymentGatewayClient {
 
                 return new PaymentResponse(
                         "pay_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
+                        paymentRequest.orderId(),
                         status,
                         paymentRequest.amount(),
                         paymentRequest.currency(),

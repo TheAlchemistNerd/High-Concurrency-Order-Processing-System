@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
@@ -54,19 +54,19 @@ class ShoppingCartControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private ShoppingCartService shoppingCartService;
 
-    @MockBean
+    @MockitoBean
     private ProductCatalogService productCatalogService; // For ProductController links
 
-    @MockBean
+    @MockitoBean
     private OrderService orderService; // For OrderController links
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private final Long currentUserId = 1L;
@@ -100,6 +100,7 @@ class ShoppingCartControllerTest {
                 .andExpect(jsonPath("$._links.self.href", endsWith("/api/cart/" + currentUserId)))
                 .andExpect(jsonPath("$._links.checkout.href", endsWith("/api/orders")))
                 .andExpect(jsonPath("$._links.clear.href", endsWith("/api/cart/" + currentUserId)))
+                .andExpect(jsonPath("$._links.add-item.href", endsWith("/api/cart/" + currentUserId + "/items")))
                 .andExpect(jsonPath("$._links.item-101-product.href", endsWith("/api/products/101")));
     }
 

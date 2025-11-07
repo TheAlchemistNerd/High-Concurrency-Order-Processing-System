@@ -40,16 +40,16 @@ class InventoryControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private InventoryService inventoryService;
 
-    @MockBean
+    @MockitoBean
     private ProductCatalogService productCatalogService; // For ProductController link building
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @BeforeEach

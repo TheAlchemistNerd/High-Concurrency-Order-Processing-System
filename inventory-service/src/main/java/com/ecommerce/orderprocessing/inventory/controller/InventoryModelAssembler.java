@@ -1,8 +1,8 @@
 package com.ecommerce.orderprocessing.inventory.controller;
 
 import com.ecommerce.orderprocessing.inventory.dto.InventoryResponse;
-import com.ecommerce.orderprocessing.product.controller.ProductController;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +16,7 @@ public class InventoryModelAssembler implements RepresentationModelAssembler<Inv
     public EntityModel<InventoryResponse> toModel(InventoryResponse inventory) {
         return EntityModel.of(inventory,
                 linkTo(methodOn(InventoryController.class).getInventoryByProductId(inventory.productId())).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProductById(inventory.productId())).withRel("product"),
+                Link.of("/api/products/" + inventory.productId()).withRel("product"),
                 linkTo(methodOn(InventoryController.class).checkInventory(inventory.productId(), null)).withRel("check"),
                 linkTo(methodOn(InventoryController.class).reserveInventory(inventory.productId(), null)).withRel("reserve"),
                 linkTo(methodOn(InventoryController.class).releaseInventory(inventory.productId(), null)).withRel("release"),

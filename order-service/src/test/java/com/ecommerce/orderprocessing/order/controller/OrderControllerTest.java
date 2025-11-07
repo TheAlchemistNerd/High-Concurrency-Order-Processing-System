@@ -55,19 +55,19 @@ class OrderControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private OrderService orderService;
 
     // Mocks for cross-module link building
-    @MockBean
+    @MockitoBean
     private ProductCatalogService productCatalogService;
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
     // Mocks for security
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private OrderResponse pendingOrder;

@@ -67,6 +67,7 @@ project(':product-service') {
         implementation 'org.springframework.boot:spring-boot-starter-security'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+        implementation project(':inventory-service')
     }
 }
 
@@ -96,6 +97,7 @@ project(':order-service') {
         implementation 'org.springframework.boot:spring-boot-starter-web'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
     }
 }
 
@@ -115,9 +117,11 @@ project(':shopping-cart-service') {
         testImplementation testFixtures(project(':common'))
         implementation project(':user-service')
         implementation project(':product-service')
+        implementation project(':order-service')
         implementation 'org.springframework.boot:spring-boot-starter-web'
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-hateoas'
+        implementation 'org.springframework.boot:spring-boot-starter-security'
     }
 }
 
@@ -149,6 +153,8 @@ project(':app') {
         implementation 'org.springframework.boot:spring-boot-starter-security'
         implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
         implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework:spring-tx'
         implementation 'io.micrometer:micrometer-registry-prometheus'
         implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
         runtimeOnly 'org.postgresql:postgresql'

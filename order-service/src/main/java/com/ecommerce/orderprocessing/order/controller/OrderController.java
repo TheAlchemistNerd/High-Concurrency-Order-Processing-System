@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -62,7 +63,7 @@ public class OrderController {
                     List<EntityModel<OrderResponse>> orderModels = pagedResponse.content().stream()
                             .map(assembler::toModel)
                             .collect(Collectors.toList());
-                    return PagedModel.of(orderModels, new PagedModel.PageMetadata(pagedResponse.size(), pagedResponse.number(), pagedResponse.totalElements(), pagedResponse.totalPages()),
+                    return PagedModel.of(orderModels, new PagedModel.PageMetadata(pagedResponse.size(), pagedResponse.page(), pagedResponse.totalElements(), pagedResponse.totalPages()),
                             linkTo(methodOn(OrderController.class).getCustomerOrders(customerId, pageable, null)).withSelfRel());
                 });
     }
@@ -96,7 +97,7 @@ public class OrderController {
                     List<EntityModel<OrderResponse>> orderModels = pagedResponse.content().stream()
                             .map(assembler::toModel)
                             .collect(Collectors.toList());
-                    return PagedModel.of(orderModels, new PagedModel.PageMetadata(pagedResponse.size(), pagedResponse.number(), pagedResponse.totalElements(), pagedResponse.totalPages()),
+                    return PagedModel.of(orderModels, new PagedModel.PageMetadata(pagedResponse.size(), pagedResponse.page(), pagedResponse.totalElements(), pagedResponse.totalPages()),
                             linkTo(methodOn(OrderController.class).getAllOrders(pageable)).withSelfRel());
                 });
     }
